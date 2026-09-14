@@ -192,7 +192,7 @@ struct Runner { float alive; vec2 head; float y0; float r; float v; float col; f
 
 float pathX(float y, float col, float layer, float colW, float amp) {
     // lateral meander as a function of height, so trail == path exactly
-    float s = y / (420.0 * pxScale);
+    float s = y / (300.0 * pxScale);
     float n = (vnoise(vec2(s, col * 13.7 + layer * 5.3 + seed)) - 0.5) * 2.0;
     float n2 = (vnoise(vec2(s * 4.0 + 9.0, col * 7.1 + layer * 2.9 + seed)) - 0.5) * 2.0;
     // small deflections where the runner hit a drop, eased so the head turns smoothly
@@ -200,7 +200,7 @@ float pathX(float y, float col, float layer, float colW, float amp) {
     float k0 = hash11(floor(ky) + col * 3.1 + layer) - 0.5;
     float k1 = hash11(floor(ky) + 1.0 + col * 3.1 + layer) - 0.5;
     float kink = mix(k0, k1, smoothstep(0.7, 1.0, fract(ky))) * 2.0;
-    return rainWander * amp * colW * (0.12 * n + 0.04 * n2 + 0.02 * kink);
+    return rainWander * amp * colW * (0.17 * n + 0.05 * n2 + 0.03 * kink);
 }
 
 Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, float T) {
@@ -244,7 +244,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     rn.v = v * (1.0 + 2.0 * accel * tau);
     rn.xc = (col + 0.5) * colW + (hc.y - 0.5) * colW * 0.5;
     rn.head = vec2(rn.xc + pathX(y, col, layer, colW, rn.widthVar), y);
-    rn.tw = rn.r * 0.55 * rainTrailWidth * mix(0.75, 1.25, hc.w);
+    rn.tw = rn.r * 0.8 * rainTrailWidth * mix(0.8, 1.2, hc.w);
     rn.born = t0;
     // after the head is long gone the track re-fogs and the beads evaporate,
     // so nothing pops when the cycle is dropped from evaluation
@@ -280,7 +280,7 @@ vec3 fogColor(vec2 uv) {
 
 // Shade a drop field. `pane` is the colour of the glass under it (used for
 // the fringe). Returns premultiplied colour in rgb and coverage in a.
-vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
+vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
     float ps = pxScale;
     if (acc.h <= 0.001) return vec4(0.0);
     vec3 n = normalize(vec3(acc.n, 1.0));
@@ -298,7 +298,7 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     vec2 dropUv = mirrorUv(uv + lensOff / resolution);
     vec3 inside = sampleBg(dropUv, dropSharp * mix(0.3, 1.0, sizeK) * f);
     inside = (inside - 0.5) * mix(1.0, dropContrast, f) + 0.5;
-    inside *= 1.0 + brighten * f;
+    inside *= 1.0 + (brighten + 0.2 * runner) * f;
     // Fresnel loss and the wide field of view make a real drop a little
     // darker than the pane, more so toward the rim
     inside *= mix(1.0, 0.85 * (1.0 - 0.3 * smoothstep(0.55, 1.0, rad)), f);
@@ -308,12 +308,12 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     // dark cap: a crescent over the top ~30% of the radius on the lit side,
     // where grazing refraction and TIR remove the transmitted light
     float capMask = smoothstep(0.5, 0.98, rad) * pow(litSide, 1.3);
-    float rim = 1.0 - rimDark * mix(0.5, 1.0, sizeK) * capMask * f;
+    float rim = 1.0 - rimDark * (1.0 - 0.5 * runner) * mix(0.5, 1.0, sizeK) * capMask * f;
     // bright arc: a whitish crescent along the far rim
     float arcDir = max(dot(outward, -lxy), 0.0);
     float arc = pow(arcDir, 2.0) * smoothstep(0.62, 0.97, rad) * (1.0 - smoothstep(0.985, 1.0, rad)) * highlight * 0.7 * f;
     // neutral contact line, world-space width
-    float olw = max(1.2 * ps, 0.05 * acc.rNear);
+    float olw = max(1.2 * ps, 0.035 * acc.rNear);
     float ol = 1.0 - outline * mix(0.3, 1.0, sizeK) * smoothstep(olw, 0.0, abs(acc.edge)) * 0.5 * f;
     // reflections of the room on the lit side of the dome
     float fres = 0.02 + 0.98 * pow(steep, 5.0);
@@ -457,8 +457,7 @@ void main() {
                     float band = smoothstep(shrink + 1.5 * ps, shrink - 1.5 * ps, abs(dx));
                     trailClear = max(trailClear, band * fresh);
                     // meniscus glints: short segments along the wet edge
-                    float seg = smoothstep(0.55, 0.75, wn2);
-                    float men = (1.0 - smoothstep(0.0, 1.5 * ps, abs(abs(dx) - tw))) * fresh * seg;
+                    float men = (1.0 - smoothstep(0.0, 2.5 * ps, abs(abs(dx) - shrink))) * fresh * (0.6 + 0.4 * wn2);
                     trailMen = max(trailMen, men);
                 }
 
@@ -608,7 +607,7 @@ void main() {
     float sh = shadow * 0.22 * outsideNear * shadowSide * clamp(sess.rNear / (10.0 * ps), 0.15, 1.0) * (0.3 + 0.7 * clum);
     outc.rgb *= 1.0 - sh;
     outc.a = 1.0 - (1.0 - outc.a) * (1.0 - sh);
-    vec4 dr = shadeDrop(sess, uv, clear, L, lxy);
+    vec4 dr = shadeDrop(sess, uv, clear, L, lxy, 0.0);
     outc = vec4(dr.rgb + outc.rgb * (1.0 - dr.a), dr.a + outc.a * (1.0 - dr.a));
     fragColor = outc * qt_Opacity;
 #else
@@ -633,7 +632,7 @@ void main() {
     vec3 col = mix(clear, fogged, fogLocal);
     col += glassAdd * 0.06 * fogLocal * fogGrain;
     // meniscus: refract the pane slightly along the wet edge instead of painting a line
-    col = mix(col, sampleBg(bgUv + vec2(0.0, 1.5 * ps / resolution.y), 0.0), trailMen * trailEdge * 0.5);
+    col = mix(col, sampleBg(bgUv + vec2(0.0, 2.0 * ps / resolution.y), 0.0) * 1.06, trailMen * trailEdge * 0.6);
 
     // --------------------------------------------------- sessile layer
     vec4 st = texture(sessTex, uv);
@@ -646,7 +645,7 @@ void main() {
         float shadowSide = pow(smoothstep(-0.2, 1.0, dot(runAcc.toC, -lxy)), 2.0);
         float bgLum = dot(col, vec3(0.2126, 0.7152, 0.0722));
         col *= 1.0 - shadow * 0.22 * outsideNear * shadowSide * clamp(runAcc.rNear / (10.0 * ps), 0.15, 1.0) * (0.3 + 0.7 * bgLum) * runAcc.fade;
-        vec4 dr = shadeDrop(runAcc, uv, col, L, lxy);
+        vec4 dr = shadeDrop(runAcc, uv, col, L, lxy, 1.0);
         col = col * (1.0 - dr.a) + dr.rgb;
         cov = dr.a;
     }

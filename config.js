@@ -39,8 +39,8 @@ var defaults = {
   "fog": {
     "amount": 0.45,       // 0..1 condensation on the glass
     "grain": 0.45,        // micro-droplet texture of the condensation
-    "regrow": 1.4,        // how fast a wiped track fogs up again
-    "halo": 0.35,         // dry ring around drops
+    "regrow": 2.0,        // how fast a wiped track fogs up again
+    "halo": 0.6,          // dry ring around drops
     "lift": 0.6,          // how milky/bright the condensation is
     "tint": [0.85, 0.88, 0.94],
     "tintStrength": 0.25

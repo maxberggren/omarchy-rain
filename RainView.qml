@@ -207,8 +207,8 @@ Item {
     readonly property real dropLayers: view.num(view.cfg.drops.layers, 3)
     readonly property real fogAmount: view.num(view.cfg.fog.amount, 0.45)
     readonly property real fogGrain: view.num(view.cfg.fog.grain, 0.45)
-    readonly property real fogRegrow: view.num(view.cfg.fog.regrow, 1.4)
-    readonly property real fogHalo: view.num(view.cfg.fog.halo, 0.35)
+    readonly property real fogRegrow: view.num(view.cfg.fog.regrow, 2.0)
+    readonly property real fogHalo: view.num(view.cfg.fog.halo, 0.6)
     readonly property real fogLift: view.num(view.cfg.fog.lift, 0.6)
     readonly property vector4d fogTint: { var t = view.vec3(view.cfg.fog.tint, [0.85, 0.88, 0.94]); return Qt.vector4d(t.x, t.y, t.z, view.num(view.cfg.fog.tintStrength, 0.25)); }
     readonly property real lensZoom: view.num(view.cfg.optics.lensZoom, 7)

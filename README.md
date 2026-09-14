@@ -99,8 +99,8 @@ presets, edit config). Merge its keys into
 | **fog** | | condensation |
 | `fog.amount` | `0.45` | 0..1 how fogged the pane is (drops and tracks wipe it) |
 | `fog.grain` | `0.45` | micro-droplet texture |
-| `fog.regrow` | `1.4` | how fast a wiped track fogs up again |
-| `fog.halo` | `0.35` | dry ring around drops |
+| `fog.regrow` | `2.0` | how fast a wiped track fogs up again |
+| `fog.halo` | `0.6` | dry ring around drops |
 | `fog.lift` | `0.6` | how milky/bright the condensation is |
 | `fog.tint` | `[0.85,0.88,0.94]` | colour of the scattered light |
 | `fog.tintStrength` | `0.25` | |
