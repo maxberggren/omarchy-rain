@@ -16,7 +16,7 @@ var defaults = {
     "speed": 1.0,         // fall speed (multiplier)
     "stickSlip": 0.85,    // 0..1 pulsed, pinning motion
     "wander": 1.0,        // lateral meander (multiplier)
-    "trail": 0.3,         // pearling droplet density on the track
+    "trail": 0.12,        // pearling droplet density on the track
     "trailWidth": 1.0,    // width of the cleared track
     "trailEdge": 1.0,     // meniscus highlight along the track edges
     "layers": 2,          // 1..3 size classes of runners

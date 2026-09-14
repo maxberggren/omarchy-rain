@@ -188,7 +188,55 @@ void accMerge(inout Acc a, Acc b, float k) {
 }
 
 // ------------------------------------------------------------- runners
-struct Runner { float alive; vec2 head; float y0; float r; float v; float col; float xc; float tw; float born; float widthVar; float dying; float layer; float colW; vec4 shape; float lean; float spark; };
+// Geometry of the sitting drop that cell `cc` of layer `fl` may hold:
+// xy = centre (px), z = radius (px) including its life cycle, w = existence.
+vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHere) {
+    vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
+    if (hs.x > densHere) return vec4(0.0);
+    float exist = smoothstep(0.0, 0.08, densHere - hs.x);
+    vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
+    float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
+    float T = PERIOD / ncyc;
+    float tl = mod(time + hs.x * T * 5.0, T);
+    float k = floor((time + hs.x * T * 5.0) / T);
+    vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
+    float a1 = 1.55;
+    float ratio = pow(rMin / rMax, a1);
+    float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
+    float pop = 1.0;
+    if (tl < 0.5) {
+        float tt = tl / 0.5;
+        pop = tt < 0.2 ? smoothstep(0.0, 0.2, tt) * 1.15 : (1.0 + 0.15 * exp(-(tt - 0.2) * 6.0) * cos((tt - 0.2) * 34.0));
+    }
+    float grow = 0.85 + 0.15 * clamp(tl / (0.5 * T), 0.0, 1.0);
+    // drops do not vanish in the rain; only a very slow shrink at the end of
+    // a long life, so the pane slowly renews itself
+    float ev = clamp((tl - 0.6 * T) / (0.4 * T), 0.0, 1.0);
+    float evap = 1.0 - ev * ev;
+    return vec4(centre, r * pop * grow * evap * exist, exist);
+}
+
+// Cheaper variant for neighbour checks: static position and base radius only.
+vec4 sessileBase(vec2 cc, float fl, float cs, float rMin, float rMax, float densHere) {
+    vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
+    if (hs.x > densHere) return vec4(0.0);
+    vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
+    float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
+    float T = PERIOD / ncyc;
+    float k = floor((time + hs.x * T * 5.0) / T);
+    vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
+    float a1 = 1.55;
+    float ratio = pow(rMin / rMax, a1);
+    float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
+    return vec4(centre, r, 1.0);
+}
+
+float layerCell(int l) { return (l == 0 ? 74.0 : (l == 1 ? 38.0 : 19.0)) * pxScale * dropSize; }
+float layerDens(int l) { return dropDensity * (l == 0 ? 0.5 : (l == 1 ? 0.62 : 0.9)); }
+float layerCluster(int l, vec2 p, float cs) {
+    return 0.3 + 1.4 * vnoise(p / (cs * (l == 0 ? 4.8 : (l == 1 ? 9.0 : 18.0))) + vec2(seed * 3.0, 9.0));
+}
+struct Runner { float alive; vec2 head; float y0; float r; float v; float col; float xc; float tw; float born; float widthVar; float dying; float layer; float colW; vec4 shape; float lean; float spark; vec2 stopCell; float merged; float stopVol; };
 
 float pathX(float y, float col, float layer, float colW, float amp) {
     // lateral meander as a function of height, so trail == path exactly
@@ -206,7 +254,7 @@ float pathX(float y, float col, float layer, float colW, float amp) {
 Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, float T) {
     Runner rn;
     rn.alive = 0.0; rn.head = vec2(0.0); rn.y0 = 0.0; rn.r = rBase; rn.v = 1.0; rn.col = col; rn.xc = 0.0; rn.tw = 1.0; rn.born = 0.0; rn.widthVar = 1.0; rn.dying = 0.0; rn.layer = layer; rn.colW = colW;
-    rn.shape = vec4(1.0); rn.lean = 0.0; rn.spark = 1.0;
+    rn.shape = vec4(1.0); rn.lean = 0.0; rn.spark = 1.0; rn.stopCell = vec2(-1e5); rn.merged = 0.0; rn.stopVol = 0.0;
     vec4 hc = hash42(vec2(col * 1.7 + layer * 31.0 + seed, cycleK * 0.37 + layer));
     vec4 hv = hash42(vec2(col * 2.9 + layer * 13.0 - seed, cycleK * 0.53 + 7.0));
     // every runner is its own drop: outline wobble, width/height aspect,
@@ -229,8 +277,44 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     float stick = rainStickSlip * 0.95;
     float y = y0 + v * (tau + accel * tau * tau) - stick * v / omega * (sin(omega * tau + hc.x * 6.28) - sin(hc.x * 6.28));
     rn.alive = 1.0;
+    float rNow = rBase * mix(0.75, 1.15, hc.w);
+    float xcBase = (col + 0.5) * colW + (hc.y - 0.5) * colW * 0.5;
+    float wvar = mix(0.6, 1.5, hc.w);
+    // a runner that hits a bigger sitting drop merges into it and stops there:
+    // scan the big-drop layer along the path for the first such drop
+    float cs0 = layerCell(0);
+    float dens0 = layerDens(0);
+    float yStop = 1e9;
+    vec2 stopCell = vec2(-1e5);
+    float stopR = 0.0;
+    float j0 = floor((y0 + rNow) / cs0);
+    for (int i = 0; i < 24; i++) {
+        float fj = j0 + float(i);
+        if (fj * cs0 > y + rNow) break;
+        float yc = (fj + 0.5) * cs0;
+        for (int c2 = 0; c2 < 2; c2++) {
+            float cx = floor((xcBase + (c2 == 0 ? -0.3 : 0.3) * colW) / cs0);
+            if (c2 == 1 && cx == floor((xcBase - 0.3 * colW) / cs0)) continue;
+            vec2 cc = vec2(cx, fj);
+            vec2 cen = (cc + 0.5) * cs0;
+            float dh = dens0 * layerCluster(0, cen, cs0);
+            vec4 nb = sessileBase(cc, 0.0, cs0, 1.3 * pxScale, cs0 * 0.42, dh);
+            if (nb.w <= 0.0 || nb.z < rNow * 1.15) continue;
+            float px = xcBase + pathX(nb.y, col, layer, colW, wvar);
+            if (abs(px - nb.x) > nb.z + rNow * 0.7) continue;
+            float ys = nb.y - nb.z * 0.5;
+            if (ys > y0 + rNow && ys < yStop) { yStop = ys; stopCell = cc; stopR = nb.z; }
+        }
+    }
+    if (y > yStop) {
+        // arrived: the head melts into the sitting drop over a short moment
+        float over = (y - yStop) / max(v, 1.0);
+        rn.merged = smoothstep(0.0, 0.5, over);
+        rn.stopCell = stopCell;
+        y = yStop;
+    }
     rn.y0 = y0;
-    rn.widthVar = mix(0.6, 1.5, hc.w);
+    rn.widthVar = wvar;
     // pickups: every so often the head swallows a sitting drop and jumps in size
     float seg = 75.0 * pxScale;
     float nseg = (y - y0) / seg;
@@ -241,9 +325,10 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
         float hp = hash11(fi * 3.7 + col * 11.3 + cycleK * 0.61 + layer * 5.0 + seed);
         if (hp < 0.45) picked += smoothstep(fi, fi + 0.25, nseg) * (0.5 + hp);
     }
-    rn.r = rBase * mix(0.75, 1.15, hc.w) * pow(1.0 + rainGrow * 0.6 * picked, 0.4);
+    rn.r = rNow * pow(1.0 + rainGrow * 0.6 * picked, 0.4);
+    rn.stopVol = rn.r * rn.r * rn.r * rn.merged;
     rn.v = v * (1.0 + 2.0 * accel * tau);
-    rn.xc = (col + 0.5) * colW + (hc.y - 0.5) * colW * 0.5;
+    rn.xc = xcBase;
     rn.head = vec2(rn.xc + pathX(y, col, layer, colW, rn.widthVar), y);
     rn.tw = rn.r * 0.8 * rainTrailWidth * mix(0.8, 1.2, hc.w);
     rn.born = t0;
@@ -340,56 +425,6 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
 }
 
 
-#ifdef SESSILE
-// Geometry of the sitting drop that cell `cc` of layer `fl` may hold:
-// xy = centre (px), z = radius (px) including its life cycle, w = existence.
-vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHere) {
-    vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
-    if (hs.x > densHere) return vec4(0.0);
-    float exist = smoothstep(0.0, 0.08, densHere - hs.x);
-    vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
-    float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
-    float T = PERIOD / ncyc;
-    float tl = mod(time + hs.x * T * 5.0, T);
-    float k = floor((time + hs.x * T * 5.0) / T);
-    vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
-    float a1 = 1.55;
-    float ratio = pow(rMin / rMax, a1);
-    float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
-    float pop = 1.0;
-    if (tl < 0.5) {
-        float tt = tl / 0.5;
-        pop = tt < 0.2 ? smoothstep(0.0, 0.2, tt) * 1.15 : (1.0 + 0.15 * exp(-(tt - 0.2) * 6.0) * cos((tt - 0.2) * 34.0));
-    }
-    float grow = 0.85 + 0.15 * clamp(tl / (0.5 * T), 0.0, 1.0);
-    // drops do not vanish in the rain; only a very slow shrink at the end of
-    // a long life, so the pane slowly renews itself
-    float ev = clamp((tl - 0.6 * T) / (0.4 * T), 0.0, 1.0);
-    float evap = 1.0 - ev * ev;
-    return vec4(centre, r * pop * grow * evap * exist, exist);
-}
-
-// Cheaper variant for neighbour checks: static position and base radius only.
-vec4 sessileBase(vec2 cc, float fl, float cs, float rMin, float rMax, float densHere) {
-    vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
-    if (hs.x > densHere) return vec4(0.0);
-    vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
-    float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
-    float T = PERIOD / ncyc;
-    float k = floor((time + hs.x * T * 5.0) / T);
-    vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
-    float a1 = 1.55;
-    float ratio = pow(rMin / rMax, a1);
-    float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
-    return vec4(centre, r, 1.0);
-}
-
-float layerCell(int l) { return (l == 0 ? 74.0 : (l == 1 ? 38.0 : 19.0)) * pxScale * dropSize; }
-float layerDens(int l) { return dropDensity * (l == 0 ? 0.5 : (l == 1 ? 0.62 : 0.9)); }
-float layerCluster(int l, vec2 p, float cs) {
-    return 0.3 + 1.4 * vnoise(p / (cs * (l == 0 ? 4.8 : (l == 1 ? 9.0 : 18.0))) + vec2(seed * 3.0, 9.0));
-}
-#endif
 
 void main() {
     vec2 uv = qt_TexCoord0;
@@ -409,6 +444,9 @@ void main() {
     float sweepX = -1e5;      // path x, head radius and head y of the strongest sweep here
     float sweepW = 1.0;
     float sweepHeadY = -1e5;
+    float sweepV = 1.0;
+    vec2 growCell = vec2(-1e5);   // big-drop cell that a runner merged into near this pixel
+    float growVol = 0.0;
 
     int layers = int(clamp(rainLayers, 1.0, 3.0));
 
@@ -442,8 +480,9 @@ void main() {
                     float dx = p.x - pathHere;
                     // any pixel that could belong to a drop the head touches
                     float sw = (abs(dx) < rn.r * 3.0 + 80.0 * ps ? 1.0 : 0.0) * (1.0 - rn.dying);
-                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; }
+                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); }
                 }
+                if (rn.merged > 0.0 && rn.stopVol > growVol) { growCell = rn.stopCell; growVol = rn.stopVol; }
 #else
                 if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
@@ -475,7 +514,7 @@ void main() {
                 float tailLen = rn.shape.w;
                 float taper = clamp(-dl.y / (tailLen * rn.r), 0.0, 1.0);
                 float rx = rn.r * rn.shape.y * mix(1.0, 0.55 * rainTrailWidth / rn.shape.y, pow(taper, 1.1));
-                float tailFade = 1.0 - smoothstep(0.08, 0.9, taper);
+                float tailFade = (1.0 - smoothstep(0.08, 0.9, taper)) * (1.0 - rn.merged);
                 float tailDome = rn.shape.z * (1.0 - 0.9 * smoothstep(0.05, 0.8, taper));
                 addDrop(runAcc, dl, rx, rn.r * tailLen, rn.r * 1.05 / rn.shape.y, rn.shape.x, rn.col * 1.3, rn.r, 0.25 + 0.2 * dropMerge, lensZoom, tailDome, rn.spark, tailFade);
                 }
@@ -535,12 +574,18 @@ void main() {
                 vec2 centre = me.xy;
                 float exist = me.w;
                 float rr = me.z;
-                // a runner swallows every drop its head touches on the way down
+                // a runner swallows every drop its head touches on the way down:
+                // the drop is pulled into the head and shrinks away over ~0.4 s
                 if (sweep > 0.001) {
                     float reach = sweepW * 1.05 + rr;
-                    float inBand = smoothstep(reach, reach * 0.8, abs(centre.x - sweepX));
-                    float reached = smoothstep(sweepHeadY + rr, sweepHeadY - rr, centre.y);
-                    exist *= 1.0 - inBand * reached;
+                    if (abs(centre.x - sweepX) < reach) {
+                        float tpass = (sweepHeadY - centre.y + rr * 0.5) / sweepV;   // seconds since the head reached it
+                        float gone = smoothstep(0.0, 0.4, tpass);
+                        centre.x += (sweepX - centre.x) * gone * 0.85;
+                        centre.y += min(sweepHeadY - centre.y, rr * 1.5) * gone * 0.5;
+                        exist *= 1.0 - gone;
+                        rr *= 1.0 - gone;
+                    }
                 }
                 if (rr < 0.6) continue;
                 vec2 d = p - centre;
@@ -549,6 +594,8 @@ void main() {
                 // coalescence: water does not overlap. A drop touching a bigger
                 // neighbour is absorbed by it; the bigger one grows by the volume.
                 float vol = rr * rr * rr;
+                // a runner that stopped here adds its water
+                if (l == 0 && cc == growCell) vol += growVol;
                 float absorbed = 0.0;
                 if (l < 2) {
                     for (int ny = -1; ny <= 1; ny++) for (int nx = -1; nx <= 1; nx++) {

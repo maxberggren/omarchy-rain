@@ -80,7 +80,7 @@ presets, edit config). Merge its keys into
 | `rain.speed` | `1.0` | fall speed multiplier |
 | `rain.stickSlip` | `0.85` | 0..1 pulsed, pinning motion |
 | `rain.wander` | `1.0` | lateral meander |
-| `rain.trail` | `0.3` | pearling bead density on the track |
+| `rain.trail` | `0.12` | pearling bead density on the track |
 | `rain.trailWidth` | `1.0` | width of the wiped track |
 | `rain.trailEdge` | `1.0` | meniscus glints along the track edges |
 | `rain.layers` | `2` | 1..3 size classes of runners |
