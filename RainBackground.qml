@@ -20,7 +20,7 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property string build: "23"
+  readonly property string build: "24"
   readonly property string home: Quickshell.env("HOME")
   readonly property string configPath: home + "/.config/omarchy/rain.json"
   readonly property string currentBackgroundLink: home + "/.local/state/omarchy/current/background"
@@ -153,6 +153,7 @@ Item {
 
   function screenWanted(screen) {
     var list = cfg.screens;
+    if (typeof list === "string") list = list.length ? list.split(",").map(function(x) { return x.trim(); }) : [];
     if (!Array.isArray(list) || list.length === 0) return true;
     return list.indexOf(screen.name) !== -1;
   }

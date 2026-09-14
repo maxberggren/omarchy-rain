@@ -118,7 +118,11 @@ function setPath(cfg, path, value) {
     if (s === "true") v = true;
     else if (s === "false") v = false;
     else if (s.length && !isNaN(Number(s))) v = Number(s);
-    else if (s[0] === "[" || s[0] === "{") { try { v = JSON.parse(s); } catch (e) {} }
+    else if (s[0] === "[" || s[0] === "{" || s[0] === "\"") { try { v = JSON.parse(s); } catch (e) {} }
+    // bare comma-separated list for list-valued keys, e.g. `set screens DP-1,DP-2`
+    if (typeof v === "string" && (last === "screens" || last === "tint" || last === "light" || last === "reflectionColor") && v.indexOf(",") !== -1) {
+      v = v.split(",").map(function(x) { var t = x.trim(); return isNaN(Number(t)) ? t : Number(t); });
+    }
   }
   node[last] = v;
   return cfg;
