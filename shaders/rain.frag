@@ -402,8 +402,9 @@ void main() {
     float trailClear = 0.0;   // 0..1 condensation wiped by a runner track
     float trailMen = 0.0;     // meniscus glints along track edges
     float sweep = 0.0;        // 0..1 sessile drops here were swallowed by a runner
-    float sweepX = -1e5;      // path x and half-width of the strongest sweep here
+    float sweepX = -1e5;      // path x, head radius and head y of the strongest sweep here
     float sweepW = 1.0;
+    float sweepHeadY = -1e5;
 
     int layers = int(clamp(rainLayers, 1.0, 3.0));
 
@@ -435,8 +436,8 @@ void main() {
                 // sweep: everything the head touched is gone
                 if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
-                    float sw = smoothstep(rn.r * 1.6, rn.r * 1.0, abs(dx)) * (1.0 - rn.dying);
-                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r * 1.3; }
+                    float sw = smoothstep(rn.r * 3.0, rn.r * 1.0, abs(dx)) * (1.0 - rn.dying);
+                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; }
                 }
 #else
                 if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
@@ -530,9 +531,12 @@ void main() {
                 vec2 centre = me.xy;
                 float exist = me.w;
                 float rr = me.z;
+                // a runner swallows every drop its head touches on the way down
                 if (sweep > 0.001) {
-                    float inBand = smoothstep(sweepW, sweepW * 0.75, abs(centre.x - sweepX));
-                    exist *= 1.0 - inBand * sweep;
+                    float reach = sweepW * 1.05 + rr;
+                    float inBand = smoothstep(reach, reach * 0.8, abs(centre.x - sweepX));
+                    float reached = smoothstep(sweepHeadY + rr, sweepHeadY - rr, centre.y);
+                    exist *= 1.0 - inBand * reached;
                 }
                 if (rr < 0.6) continue;
                 vec2 d = p - centre;
