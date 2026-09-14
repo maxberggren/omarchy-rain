@@ -58,6 +58,12 @@ omarchy-shell rain pause | resume          # freeze the animation, keep the fram
 omarchy-shell rain status
 ```
 
+### Menu entry
+
+`extras/omarchy-menu.jsonc` adds a Style > Rain submenu (toggle, pause,
+presets, edit config). Merge its keys into
+`~/.config/omarchy/extensions/omarchy-menu.jsonc`; the menu hot-reloads.
+
 ### All settings and defaults
 
 | Key | Default | What it does |

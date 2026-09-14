@@ -1,0 +1,16 @@
+{
+  // Optional: a "Rain" submenu under Style in the Omarchy menu.
+  // Merge these keys into ~/.config/omarchy/extensions/omarchy-menu.jsonc.
+  "style.rain": {"icon":"","label":"Rain"},
+  "style.rain.toggle": {"icon":"","label":"Toggle rain","checked":"omarchy-shell rain status | grep -q '\"enabled\":true'","action":"omarchy-shell rain toggle"},
+  "style.rain.pause": {"icon":"","label":"Pause / resume","checked":"omarchy-shell rain status | grep -q '\"paused\":true'","action":"bash -c 'omarchy-shell rain status | grep -q \"\\\"paused\\\":true\" && omarchy-shell rain resume || omarchy-shell rain pause'"},
+  "style.rain.preset": {"icon":"","label":"Preset"},
+  "style.rain.preset.default": {"icon":"","label":"Default","action":"omarchy-shell rain preset default"},
+  "style.rain.preset.drizzle": {"icon":"","label":"Drizzle","action":"omarchy-shell rain preset drizzle"},
+  "style.rain.preset.downpour": {"icon":"","label":"Downpour","action":"omarchy-shell rain preset downpour"},
+  "style.rain.preset.foggy": {"icon":"","label":"Foggy","action":"omarchy-shell rain preset foggy"},
+  "style.rain.preset.night": {"icon":"","label":"Night","action":"omarchy-shell rain preset night"},
+  "style.rain.preset.still": {"icon":"","label":"Still","action":"omarchy-shell rain preset still"},
+  "style.rain.preset.cheap": {"icon":"","label":"Cheap","action":"omarchy-shell rain preset cheap"},
+  "style.rain.config": {"icon":"","label":"Edit config","action":"omarchy-launch-editor ~/.config/omarchy/rain.json"},
+}
