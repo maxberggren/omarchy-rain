@@ -298,7 +298,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
             vec2 cc = vec2(cx, fj);
             vec2 cen = (cc + 0.5) * cs0;
             float dh = dens0 * layerCluster(0, cen, cs0);
-            vec4 nb = sessileBase(cc, 0.0, cs0, 1.3 * pxScale, cs0 * 0.42, dh);
+            vec4 nb = sessileBase(cc, 0.0, cs0, 1.9 * pxScale, cs0 * 0.36, dh);
             if (nb.w <= 0.0 || nb.z < rNow * 1.15) continue;
             float px = xcBase + pathX(nb.y, col, layer, colW, wvar);
             if (abs(px - nb.x) > nb.z + rNow * 0.7) continue;
@@ -561,8 +561,8 @@ void main() {
         float fl = float(l);
         float cs = csL[l];
         float densHere = densL[l];
-        float rMax = cs * 0.42;
-        float rMin = 1.3 * ps;
+        float rMax = cs * 0.36;
+        float rMin = 1.9 * ps;
         // the four cells whose centres are nearest: a drop never reaches
         // further than jitter + rMax < 1 cell from its own centre
         vec2 cell = floor(p / cs - 0.5);
@@ -618,7 +618,7 @@ void main() {
                     float bcs = csL[bl];
                     vec2 bcell = floor(centre / bcs - 0.5);
                     for (int by = 0; by <= 1; by++) for (int bx = 0; bx <= 1; bx++) {
-                        vec4 big = sessileBase(bcell + vec2(float(bx), float(by)), float(bl), bcs, 1.3 * ps, bcs * 0.42, densL[bl]);
+                        vec4 big = sessileBase(bcell + vec2(float(bx), float(by)), float(bl), bcs, 1.9 * ps, bcs * 0.36, densL[bl]);
                         if (big.w <= 0.0 || big.z < 0.6) continue;
                         float dist = length(big.xy - centre);
                         absorbed = max(absorbed, smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist));

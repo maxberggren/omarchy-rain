@@ -190,7 +190,7 @@ Item {
     readonly property real rainAmount: view.num(view.cfg.rain.amount, 0.45)
     readonly property real rainSpawn: view.num(view.cfg.rain.spawnRate, 1)
     readonly property real rainSpeed: view.num(view.cfg.rain.speed, 1)
-    readonly property real rainStickSlip: view.num(view.cfg.rain.stickSlip, 0.85)
+    readonly property real rainStickSlip: view.num(view.cfg.rain.stickSlip, 0.55)
     readonly property real rainWander: view.num(view.cfg.rain.wander, 1)
     readonly property real rainTrail: view.num(view.cfg.rain.trail, 0.12)
     readonly property real rainTrailWidth: view.num(view.cfg.rain.trailWidth, 1)

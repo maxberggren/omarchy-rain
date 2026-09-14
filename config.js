@@ -14,7 +14,7 @@ var defaults = {
     "amount": 0.45,       // 0..1 share of columns carrying sliding drops
     "spawnRate": 1.0,     // how often a new runner starts (multiplier)
     "speed": 1.0,         // fall speed (multiplier)
-    "stickSlip": 0.85,    // 0..1 pulsed, pinning motion
+    "stickSlip": 0.55,    // 0..1 pulsed, pinning motion
     "wander": 1.0,        // lateral meander (multiplier)
     "trail": 0.12,        // pearling droplet density on the track
     "trailWidth": 1.0,    // width of the cleared track

@@ -78,7 +78,7 @@ presets, edit config). Merge its keys into
 | `rain.amount` | `0.45` | 0..1 share of the pane's columns that carry runners |
 | `rain.spawnRate` | `1.0` | how often a column starts a new runner |
 | `rain.speed` | `1.0` | fall speed multiplier |
-| `rain.stickSlip` | `0.85` | 0..1 pulsed, pinning motion |
+| `rain.stickSlip` | `0.55` | 0..1 pulsed, pinning motion |
 | `rain.wander` | `1.0` | lateral meander |
 | `rain.trail` | `0.12` | pearling bead density on the track |
 | `rain.trailWidth` | `1.0` | width of the wiped track |
