@@ -77,9 +77,14 @@ layout(binding = 1) uniform sampler2D sharpTex;
 layout(binding = 2) uniform sampler2D blurTex;
 layout(binding = 3) uniform sampler2D fogTex;
 layout(binding = 4) uniform sampler2D glassTex;
-#ifndef SESSILE
-layout(binding = 5) uniform sampler2D sessTex;
+#ifndef RUNNER_TABLE
+layout(binding = 5) uniform sampler2D runTex;
 #endif
+#if !defined(SESSILE) && !defined(RUNNER_TABLE)
+layout(binding = 6) uniform sampler2D sessTex;
+#endif
+#define RT_COLS 64.0
+#define RT_ROWS 36.0
 
 #define PERIOD 600.0
 #define PI 3.14159265
@@ -338,6 +343,34 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     return rn;
 }
 
+#ifndef RUNNER_TABLE
+// Read a runner from the per-frame state table: 6 texels per (layer, cycle) slot.
+vec4 rtFetch(float col, float slot, float g) {
+    return texture(runTex, vec2((col + 0.5) / RT_COLS, (slot * 6.0 + g + 0.5) / RT_ROWS));
+}
+// Cheap first look: alive, head y, radius, column centre. Only runners that
+// can reach this pixel are fetched in full.
+vec4 runnerPeek(float col, float layer, float cycle) {
+    return rtFetch(col, layer * 2.0 + cycle, 0.0);
+}
+Runner runnerFetch(float col, float layer, float cycle, float colW, vec4 t0) {
+    Runner rn;
+    float slot = layer * 2.0 + cycle;
+    rn.alive = t0.x; rn.head.y = t0.y; rn.r = t0.z; rn.xc = t0.w;
+    vec4 t1 = rtFetch(col, slot, 1.0);
+    rn.y0 = t1.x; rn.v = t1.y; rn.head.x = t1.z; rn.tw = t1.w;
+    vec4 t2 = rtFetch(col, slot, 2.0);
+    rn.widthVar = t2.x; rn.dying = t2.y; rn.born = t2.z; rn.merged = t2.w;
+    rn.shape = rtFetch(col, slot, 3.0);
+    vec4 t4 = rtFetch(col, slot, 4.0);
+    rn.lean = t4.x; rn.spark = t4.y; rn.stopCell = t4.zw;
+    vec4 t5 = rtFetch(col, slot, 5.0);
+    rn.stopVol = t5.x;
+    rn.col = col; rn.layer = layer; rn.colW = colW;
+    return rn;
+}
+#endif
+
 // -------------------------------------------------------------- shading
 vec2 mirrorUv(vec2 uv) {
     vec2 m = mod(uv, 2.0);
@@ -426,6 +459,42 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
 
 
 
+#ifdef RUNNER_TABLE
+// ==================================================== runner table pass
+// One texel column per runner column, 6 rows per (layer, cycle) slot.
+void main() {
+    float col = floor(qt_TexCoord0.x * RT_COLS);
+    float row = floor(qt_TexCoord0.y * RT_ROWS);
+    float slot = floor(row / 6.0);
+    float g = row - slot * 6.0;
+    int l = int(floor(slot / 2.0));
+    float c = slot - float(l) * 2.0;
+    float fl = float(l);
+    float ps = pxScale;
+    int layers = int(clamp(rainLayers, 1.0, 3.0));
+    fragColor = vec4(0.0);
+    if (l >= layers) return;
+    float layerScale = (l == 0) ? 1.0 : (l == 1 ? 0.62 : 0.4);
+    float colW = 150.0 * ps * layerScale * rainSize;
+    float rBase = 7.5 * ps * layerScale * rainSize;
+    float hcol = hash12(vec2(col * 3.3 + fl * 17.0, seed + fl));
+    float thin = (l == 0) ? 1.0 : (l == 1 ? 0.7 : 0.5);
+    if (hcol > rainAmount * thin) return;
+    float ncyc = max(floor(mix(6.0, 20.0, hash11(col * 7.7 + fl * 3.1 + seed)) * clamp(rainSpawn, 0.05, 8.0)), 1.0);
+    float T = PERIOD / ncyc;
+    float k = floor(time / T);
+    float kk = k - c;
+    if (kk < 0.0) kk += ncyc;
+    Runner rn = runnerFor(col, fl, colW, rBase, kk, T);
+    if (rn.alive < 0.5) return;
+    if (g < 0.5) fragColor = vec4(rn.alive, rn.head.y, rn.r, rn.xc);
+    else if (g < 1.5) fragColor = vec4(rn.y0, rn.v, rn.head.x, rn.tw);
+    else if (g < 2.5) fragColor = vec4(rn.widthVar, rn.dying, rn.born, rn.merged);
+    else if (g < 3.5) fragColor = rn.shape;
+    else if (g < 4.5) fragColor = vec4(rn.lean, rn.spark, rn.stopCell);
+    else fragColor = vec4(rn.stopVol, fl, colW, 0.0);
+}
+#else
 void main() {
     vec2 uv = qt_TexCoord0;
     vec2 p = uv * resolution;
@@ -460,17 +529,14 @@ void main() {
         float colIdx = floor(p.x / colW);
         for (int j = -1; j <= 1; j++) {
             float col = colIdx + float(j);
-            float hcol = hash12(vec2(col * 3.3 + fl * 17.0, seed + fl));
-            float thin = (l == 0) ? 1.0 : (l == 1 ? 0.7 : 0.5);
-            if (hcol > rainAmount * thin) continue;
-            float ncyc = max(floor(mix(6.0, 20.0, hash11(col * 7.7 + fl * 3.1 + seed)) * clamp(rainSpawn, 0.05, 8.0)), 1.0);
-            float T = PERIOD / ncyc;
-            float k = floor(time / T);
+            if (col < 0.0 || col >= RT_COLS) continue;
             for (int c = 0; c < 2; c++) {
-                float kk = k - float(c);
-                if (kk < 0.0) kk += ncyc;
-                Runner rn = runnerFor(col, fl, colW, rBase, kk, T);
-                if (rn.alive < 0.5 || rn.dying > 0.999) continue;
+                vec4 t0 = runnerPeek(col, fl, float(c));
+                if (t0.x < 0.5) continue;
+                // a runner never strays further than this from its column centre
+                if (abs(p.x - t0.w) > colW * 0.75 + t0.z * 4.0 + 80.0 * ps) continue;
+                Runner rn = runnerFetch(col, fl, float(c), colW, t0);
+                if (rn.dying > 0.999) continue;
                 float pathHere = rn.xc + pathX(p.y, rn.col, fl, colW, rn.widthVar);
                 float dxp = p.x - pathHere;
                 float dyh = p.y - rn.head.y;
@@ -713,3 +779,4 @@ void main() {
     fragColor = vec4(col, 1.0) * qt_Opacity;
 #endif
 }
+#endif

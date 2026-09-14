@@ -11,3 +11,6 @@ done
 # the sessile-drop pass is the same source with SESSILE defined
 "$QSB" --qt6 -O -D SESSILE -o sessile.frag.qsb rain.frag 2>&1 | grep -v "^$" || true
 [[ -s sessile.frag.qsb ]] && echo "built sessile.frag.qsb"
+# the runner state table is the same source with RUNNER_TABLE defined
+"$QSB" --qt6 -O -D RUNNER_TABLE -o runners.frag.qsb rain.frag 2>&1 | grep -v "^$" || true
+[[ -s runners.frag.qsb ]] && echo "built runners.frag.qsb"

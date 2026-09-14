@@ -70,6 +70,7 @@ presets, edit config). Merge its keys into
 |---|---|---|
 | `enabled` | `true` | draw the rain layer at all |
 | `fps` | `30` | animation rate cap; `0` freezes time |
+| `coveredFps` | `12` | rate while the focused workspace has windows; set equal to `fps` to disable |
 | `renderScale` | `1.0` | fraction of the screen's physical resolution; `0.5` is much cheaper |
 | `seed` | `0` | change to get a different pane |
 | `backgroundPath` | `""` | force an image instead of following the current wallpaper |
@@ -140,12 +141,15 @@ presets, edit config). Merge its keys into
 
 ## Performance
 
-The blur passes run once per wallpaper or config change. The sitting drops
-are rendered into a cached layer at `drops.fps`. Only the sliding drops,
-their tracks, the condensation and the compositing run every frame, at
-`renderScale` times the screen's physical resolution. On an integrated GPU
-use `"fps": 30` and/or `"renderScale": 0.5`, or `omarchy-shell rain preset cheap`.
-`omarchy-shell rain pause` freezes the frame at zero cost.
+The blur passes run once per wallpaper or config change. The sliding drops
+are simulated once per frame into a tiny float table; the sitting drops are
+rendered into a cached layer at `drops.fps`. Only the tracks, condensation
+and compositing run every frame, at `renderScale` times the screen's
+physical resolution. Measured on a Radeon 780M at 4K: about 14 W above
+idle at 30 fps, roughly half that at `coveredFps` 12 while windows are open,
+and nothing while paused. Use `"renderScale": 0.5`, a lower `fps`, or
+`omarchy-shell rain preset cheap` on weaker GPUs. `omarchy-shell rain pause`
+freezes the frame at zero cost.
 
 ## Development
 

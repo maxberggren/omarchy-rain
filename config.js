@@ -5,6 +5,7 @@
 var defaults = {
   "enabled": true,
   "fps": 30,              // animation rate cap for the sliding drops
+  "coveredFps": 12,       // rate while the focused workspace has windows (mostly covered)
   "renderScale": 1.0,     // fraction of the screen's physical resolution; 0.5 = cheap
   "seed": 0,
   "backgroundPath": "",   // empty = follow omarchy's current background

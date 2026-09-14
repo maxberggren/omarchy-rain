@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import QtQuick
 import "config.js" as Cfg
 
@@ -20,7 +21,7 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property string build: "32"
+  readonly property string build: "35"
   readonly property string home: Quickshell.env("HOME")
   readonly property string configPath: home + "/.config/omarchy/rain.json"
   readonly property string currentBackgroundLink: home + "/.local/state/omarchy/current/background"
@@ -37,7 +38,17 @@ Item {
   readonly property real period: 600
   property real epoch: Date.now()
   property real time: 0
-  readonly property real fps: Math.max(0, Math.min(240, Number(cfg.fps) || 0))
+  // While the focused workspace has windows the wallpaper is mostly covered,
+  // so the animation drops to coveredFps (set it equal to fps to disable).
+  readonly property real fullFps: Math.max(0, Math.min(240, Number(cfg.fps) || 0))
+  readonly property real coveredFps: cfg.coveredFps === undefined || cfg.coveredFps === null ? fullFps : Math.max(0, Math.min(240, Number(cfg.coveredFps) || 0))
+  readonly property int focusedWindows: {
+    var m = Hyprland.focusedMonitor;
+    var ws = m ? m.activeWorkspace : null;
+    var tl = ws ? ws.toplevels : null;
+    return tl && tl.values ? tl.values.length : 0;
+  }
+  readonly property real fps: focusedWindows > 0 ? coveredFps : fullFps
 
   Timer {
     id: tick
@@ -141,7 +152,7 @@ Item {
 
     function presets(): string { return Object.keys(Cfg.presets).join("\n"); }
     function status(): string {
-      return JSON.stringify({ build: root.build, enabled: root.enabled, paused: root.paused, background: root.backgroundPath, fps: root.fps, time: root.time });
+      return JSON.stringify({ build: root.build, enabled: root.enabled, paused: root.paused, background: root.backgroundPath, fps: root.fps, covered: root.focusedWindows > 0, time: root.time });
     }
   }
 
@@ -183,6 +194,7 @@ Item {
         imageSource: root.backgroundPath ? ("file://" + root.backgroundPath) : ""
         cfg: root.cfg
         time: root.time
+        paused: root.paused || !root.enabled
       }
     }
   }

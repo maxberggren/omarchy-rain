@@ -235,6 +235,83 @@ Item {
     readonly property real filmic: view.num(view.cfg.post.filmic, 0.35)
   }
 
+  // ----------------------------------------------------------- runners
+  // All sliding drops are simulated once per frame into a tiny float table
+  // (64 columns x 6 slots x 6 texels); the drop passes only read it.
+  ShaderEffect {
+    id: runnersFx
+    width: 64
+    height: 36
+    visible: true
+    property var sharpTex: sharpSrc
+    property var blurTex: blurSrc
+    property var fogTex: fogSrc
+    property var glassTex: glassSrc
+    property real time: view.time
+    property vector2d resolution: Qt.vector2d(view.rw, view.rh)
+    property real pxScale: view.pxScale
+    property real seed: u.seed
+    property real rainAmount: u.rainAmount
+    property real rainSpawn: u.rainSpawn
+    property real rainSpeed: u.rainSpeed
+    property real rainStickSlip: u.rainStickSlip
+    property real rainWander: u.rainWander
+    property real rainTrail: u.rainTrail
+    property real rainTrailWidth: u.rainTrailWidth
+    property real rainLayers: u.rainLayers
+    property real rainSize: u.rainSize
+    property real rainGrow: u.rainGrow
+    property real rainStartAbove: u.rainStartAbove
+    property real rainTurn: u.rainTurn
+    property real dropDensity: u.dropDensity
+    property real dropSize: u.dropSize
+    property real dropSpawn: u.dropSpawn
+    property real dropIrregular: u.dropIrregular
+    property real dropMerge: u.dropMerge
+    property real dropLayers: u.dropLayers
+    property real fogAmount: u.fogAmount
+    property real fogGrain: u.fogGrain
+    property real fogRegrow: u.fogRegrow
+    property real fogHalo: u.fogHalo
+    property real fogLift: u.fogLift
+    property vector4d fogTint: u.fogTint
+    property real lensZoom: u.lensZoom
+    property real lensField: u.lensField
+    property real curvature: u.curvature
+    property real refraction: u.refraction
+    property real dropSharp: u.dropSharp
+    property real rimDark: u.rimDark
+    property real outline: u.outline
+    property real highlight: u.highlight
+    property real sheen: u.sheen
+    property real shadow: u.shadow
+    property real brighten: u.brighten
+    property real dropContrast: u.dropContrast
+    property real trailEdge: u.trailEdge
+    property vector4d lightDir: u.lightDir
+    property vector4d reflectColor: u.reflectColor
+    property real scratches: u.scratches
+    property real dust: u.dust
+    property real vignette: u.vignette
+    property real brightness: u.brightness
+    property real contrast: u.contrast
+    property real saturation: u.saturation
+    property real filmic: u.filmic
+    fragmentShader: Qt.resolvedUrl("shaders/runners.frag.qsb")
+    onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: runner table shader failed:", log)
+  }
+  ShaderEffectSource {
+    id: runSrc
+    sourceItem: runnersFx
+    hideSource: true
+    textureSize: Qt.size(64, 36)
+    format: ShaderEffectSource.RGBA32F
+    smooth: false
+    mipmap: false
+    live: true
+    visible: false
+  }
+
   // ----------------------------------------------------------- sessile
   // Sitting drops change slowly (impacts, growth, being swept), so they are
   // rendered into a cached texture at drops.fps instead of every frame.
@@ -254,6 +331,7 @@ Item {
     property var blurTex: blurSrc
     property var fogTex: fogSrc
     property var glassTex: glassSrc
+    property var runTex: runSrc
     property real time: view.time
     property vector2d resolution: Qt.vector2d(view.rw, view.rh)
     property real pxScale: view.pxScale
@@ -331,6 +409,7 @@ Item {
     property var blurTex: blurSrc
     property var fogTex: fogSrc
     property var glassTex: glassSrc
+    property var runTex: runSrc
     property var sessTex: sessSrc
     property real time: view.time
     property vector2d resolution: Qt.vector2d(view.rw, view.rh)
