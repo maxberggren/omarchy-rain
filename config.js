@@ -1,0 +1,145 @@
+.pragma library
+// Default configuration for the rain background. Every value can be
+// overridden from ~/.config/omarchy/rain.json using the same nesting.
+
+var defaults = {
+  "enabled": true,
+  "fps": 60,              // animation rate cap
+  "renderScale": 1.0,     // fraction of the screen's physical resolution; 0.5 = cheap
+  "seed": 0,
+  "backgroundPath": "",   // empty = follow omarchy's current background
+  "screens": [],          // empty = all screens; else list of output names
+
+  "rain": {
+    "amount": 0.3,        // 0..1 share of columns carrying sliding drops
+    "spawnRate": 1.0,     // how often a new runner starts (multiplier)
+    "speed": 1.0,         // fall speed (multiplier)
+    "stickSlip": 0.7,     // 0..1 pulsed, pinning motion
+    "wander": 1.0,        // lateral meander (multiplier)
+    "trail": 0.3,         // pearling droplet density on the track
+    "trailWidth": 1.0,    // width of the cleared track
+    "trailEdge": 1.0,     // meniscus highlight along the track edges
+    "layers": 2,          // 1..3 size classes of runners
+    "size": 1.0,          // runner size (multiplier)
+    "grow": 0.3,          // how much a runner grows as it sweeps drops
+    "startAbove": true,   // runners enter from above the top edge (false: they can start mid-pane)
+    "turn": 0.35          // 0..1 how much a runner head turns to follow its path
+  },
+
+  "drops": {
+    "density": 1.4,       // sessile drop count (multiplier)
+    "size": 1.0,          // sessile drop size (multiplier)
+    "spawnRate": 2.0,     // how often new drops hit the pane
+    "irregularity": 1.0,  // gravity sag and outline wobble
+    "merge": 1.0,         // coalescence softness between touching drops
+    "layers": 3,          // 1..3 size classes
+    "fps": 12             // refresh rate of the cached sitting-drop layer
+  },
+
+  "fog": {
+    "amount": 0.45,       // 0..1 condensation on the glass
+    "grain": 0.8,         // micro-droplet texture of the condensation
+    "regrow": 1.4,        // how fast a wiped track fogs up again
+    "halo": 0.35,         // dry ring around drops
+    "lift": 0.6,          // how milky/bright the condensation is
+    "tint": [0.85, 0.88, 0.94],
+    "tintStrength": 0.25
+  },
+
+  "optics": {
+    "lensZoom": 7.0,      // field of view of the drop lens (inverted image)
+    "curvature": 0.85,    // how domed the drops are
+    "refraction": 1.0,    // overall refraction strength
+    "sharpness": 0.85,    // 0 = drops show the blurred scene, 1 = sharp scene
+    "rimDark": 0.6,       // dark cap on the lit side of the dome
+    "outline": 0.6,       // contact-line darkness
+    "brighten": 0.3,      // light gathered by the drop lens
+    "highlight": 1.0,     // hard specular and bright arc
+    "sheen": 1.0,         // soft broad sheen
+    "shadow": 0.35,       // shadow cast onto the pane
+    "light": [-0.45, -0.7, 0.75],
+    "reflection": 0.25,   // sky/room reflection amount
+    "reflectionColor": [0.85, 0.9, 1.0]
+  },
+
+  "blur": {
+    "radius": 26,         // lens blur radius in px (1080p logical)
+    "blades": 0,          // 0 = round aperture, 5..9 = polygon bokeh
+    "rotation": 0.3,      // aperture rotation, radians
+    "highlightBoost": 3.5,// bright points bloom into discs
+    "ring": 0.6,          // bright-rimmed bokeh discs
+    "threshold": 0.5,     // luminance where bloom starts
+    "fogSpread": 1.6      // condensation blur width
+  },
+
+  "glass": {
+    "scratches": 0.0,     // faint micro-scratches (off: they read as lines on top of everything)
+    "dust": 0.3,
+    "vignette": 0.25
+  },
+
+  "post": {
+    "brightness": 1.0,
+    "contrast": 1.0,
+    "saturation": 0.8,
+    "filmic": 0.35        // gentle S-curve so blacks and highlights breathe
+  }
+};
+
+function isObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v); }
+
+function merge(base, over) {
+  var out = {};
+  for (var k in base) out[k] = isObject(base[k]) ? merge(base[k], {}) : base[k];
+  if (!isObject(over)) return out;
+  for (var j in over) {
+    if (isObject(over[j]) && isObject(out[j])) out[j] = merge(out[j], over[j]);
+    else out[j] = over[j];
+  }
+  return out;
+}
+
+function withDefaults(user) { return merge(defaults, user || {}); }
+
+// Set a dotted key ("rain.speed") on a config object, coercing the value.
+function setPath(cfg, path, value) {
+  var parts = String(path).split(".");
+  var node = cfg;
+  for (var i = 0; i < parts.length - 1; i++) {
+    if (!isObject(node[parts[i]])) node[parts[i]] = {};
+    node = node[parts[i]];
+  }
+  var last = parts[parts.length - 1];
+  var v = value;
+  if (typeof v === "string") {
+    var s = v.trim();
+    if (s === "true") v = true;
+    else if (s === "false") v = false;
+    else if (s.length && !isNaN(Number(s))) v = Number(s);
+    else if (s[0] === "[" || s[0] === "{") { try { v = JSON.parse(s); } catch (e) {} }
+  }
+  node[last] = v;
+  return cfg;
+}
+
+function getPath(cfg, path) {
+  var parts = String(path).split(".");
+  var node = cfg;
+  for (var i = 0; i < parts.length; i++) {
+    if (!isObject(node) || !(parts[i] in node)) return undefined;
+    node = node[parts[i]];
+  }
+  return node;
+}
+
+// Named presets, applied on top of defaults.
+var presets = {
+  "default": {},
+  "drizzle": { "rain": { "amount": 0.25, "spawnRate": 0.5 }, "drops": { "density": 0.7 }, "fog": { "amount": 0.35 } },
+  "downpour": { "rain": { "amount": 0.95, "spawnRate": 2.2, "speed": 1.4, "layers": 3 }, "drops": { "density": 1.3, "spawnRate": 2.5 }, "fog": { "amount": 0.5 } },
+  "foggy": { "rain": { "amount": 0.35 }, "fog": { "amount": 0.9, "grain": 0.9, "regrow": 0.25 } },
+  "dry": { "rain": { "amount": 0.0 }, "drops": { "density": 0.8, "spawnRate": 0.2 }, "fog": { "amount": 0.2 } },
+  "night": { "blur": { "highlightBoost": 3.0, "ring": 0.8, "blades": 7 }, "fog": { "amount": 0.5, "tint": [0.7, 0.8, 1.0] }, "post": { "brightness": 0.9 } },
+  "still": { "fps": 0, "rain": { "amount": 0.0 }, "drops": { "spawnRate": 0.0 } },
+  "cheap": { "fps": 30, "renderScale": 0.5, "rain": { "layers": 1 }, "drops": { "layers": 2 }, "fog": { "grain": 0.0 }, "glass": { "scratches": 0.0, "dust": 0.0 } }
+};

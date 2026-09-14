@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "maxberggren.rain",
+  "name": "Rain on Glass",
+  "version": "0.1.0",
+  "author": "Max Berggren",
+  "description": "Physically inspired rain on a window pane over your lens-blurred wallpaper: sliding drops with stick-slip motion and pearling trails, sessile drops that coalesce, condensation that the drops wipe away. Everything is configurable in ~/.config/omarchy/rain.json.",
+  "kinds": ["service"],
+  "entryPoints": { "service": "RainBackground.qml" },
+  "keepLoaded": false
+}
