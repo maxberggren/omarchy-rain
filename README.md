@@ -107,16 +107,16 @@ presets, edit config). Merge its keys into
 | **optics** | | drop shading |
 | `optics.lensZoom` | `7.0` | field of view of the drop lens, scaled by drop size |
 | `optics.field` | `0.06` | extra field of view (in screen heights) that even tiny drops show |
-| `optics.curvature` | `0.85` | how domed the drops are |
+| `optics.curvature` | `0.65` | how domed the drops are |
 | `optics.refraction` | `1.0` | overall refraction strength |
 | `optics.sharpness` | `0.5` | 0 = drops show the blurred scene, 1 = the sharp scene |
-| `optics.rimDark` | `0.5` | dark cap on the lit side of the dome |
-| `optics.outline` | `0.6` | contact-line darkness |
+| `optics.rimDark` | `0.35` | dark cap on the lit side of the dome |
+| `optics.outline` | `0.45` | contact-line darkness |
 | `optics.brighten` | `0.12` | light gathered by the lens |
 | `optics.contrast` | `1.0` | contrast of the lens image inside drops |
 | `optics.highlight` | `0.8` | pinpoint highlight and bright arc |
 | `optics.sheen` | `1.0` | soft broad sheen |
-| `optics.shadow` | `0.5` | shadow cast onto the pane |
+| `optics.shadow` | `0.2` | shadow cast onto the pane |
 | `optics.light` | `[-0.45,-0.7,0.75]` | light direction (x right, y down, z toward viewer) |
 | `optics.reflection` | `0.25` | room/sky reflection amount |
 | `optics.reflectionColor` | `[0.85,0.9,1.0]` | |

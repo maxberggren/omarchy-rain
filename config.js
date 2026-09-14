@@ -49,16 +49,16 @@ var defaults = {
   "optics": {
     "lensZoom": 7.0,      // field of view of the drop lens, scaled by drop size
     "field": 0.06,        // extra field of view (screen heights) that even tiny drops show
-    "curvature": 0.85,    // how domed the drops are
+    "curvature": 0.65,    // how domed the drops are (flat caps on glass)
     "refraction": 1.0,    // overall refraction strength
     "sharpness": 0.5,     // 0 = drops show the blurred scene, 1 = sharp scene
-    "rimDark": 0.5,       // dark cap on the lit side of the dome
-    "outline": 0.6,       // contact-line darkness
+    "rimDark": 0.35,      // dark cap on the lit side of the dome
+    "outline": 0.45,      // contact-line darkness
     "brighten": 0.12,     // light gathered by the drop lens
     "contrast": 1.0,      // contrast of the lens image inside drops
     "highlight": 0.8,     // hard specular and bright arc
     "sheen": 1.0,         // soft broad sheen
-    "shadow": 0.5,        // shadow cast onto the pane
+    "shadow": 0.2,        // shadow cast onto the pane
     "light": [-0.45, -0.7, 0.75],
     "reflection": 0.25,   // sky/room reflection amount
     "reflectionColor": [0.85, 0.9, 1.0]

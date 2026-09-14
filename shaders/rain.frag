@@ -299,8 +299,11 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     vec3 inside = sampleBg(dropUv, dropSharp * mix(0.3, 1.0, sizeK) * f);
     inside = (inside - 0.5) * mix(1.0, dropContrast, f) + 0.5;
     inside *= 1.0 + brighten * f;
+    // Fresnel loss and the wide field of view make a real drop a little
+    // darker than the pane, more so toward the rim
+    inside *= mix(1.0, 0.85 * (1.0 - 0.3 * smoothstep(0.55, 1.0, rad)), f);
     float inLum = dot(inside, vec3(0.2126, 0.7152, 0.0722));
-    inside = mix(vec3(inLum), inside, 0.8);
+    inside = mix(vec3(inLum), inside, 0.7);
 
     // dark cap: a crescent over the top ~30% of the radius on the lit side,
     // where grazing refraction and TIR remove the transmitted light
@@ -322,7 +325,7 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     vec3 hv = normalize(Lj + vec3(0.0, 0.0, 1.0));
     float hl = max(dot(n, hv), 0.0);
     float specPow = mix(90.0, 260.0, sizeK);
-    float specMask = smoothstep(2.0 * ps, 5.0 * ps, acc.rNear) * (0.6 + 0.4 * acc.spark) * f;
+    float specMask = smoothstep(6.0 * ps, 16.0 * ps, acc.rNear) * smoothstep(0.85, 1.05, acc.spark) * f;
     float spec = pow(hl, specPow) * highlight * 1.1 * specMask;
 
     vec3 lightCol = vec3(0.95, 0.96, 1.0);
@@ -436,7 +439,8 @@ void main() {
                 // sweep: everything the head touched is gone
                 if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
-                    float sw = smoothstep(rn.r * 3.0, rn.r * 1.0, abs(dx)) * (1.0 - rn.dying);
+                    // any pixel that could belong to a drop the head touches
+                    float sw = (abs(dx) < rn.r * 3.0 + 80.0 * ps ? 1.0 : 0.0) * (1.0 - rn.dying);
                     if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; }
                 }
 #else
@@ -581,10 +585,10 @@ void main() {
                 vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
                 vec3 hk = hash32(cc * 0.71 + vec2(fl, seed));
                 float sag = clamp(rr / (20.0 * ps), 0.0, 1.0) * dropIrregular;
-                float rx = rr * (0.98 + 0.08 * (hk.y - 0.5) * dropIrregular);
+                float rx = rr * (0.97 + 0.08 * (hk.y - 0.5) * dropIrregular);
                 float ryUp = rr * (0.94 - 0.04 * sag);
-                float ryDown = rr * (1.10 + 0.10 * sag);
-                float wob = 0.045 * dropIrregular * (0.4 + 0.6 * hk.z);
+                float ryDown = rr * (1.12 + 0.18 * sag);
+                float wob = 0.06 * dropIrregular * (0.4 + 0.6 * hk.z);
                 addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
             }
         }
