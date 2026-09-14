@@ -553,6 +553,8 @@ void main() {
     float sweepW = 1.0;
     float sweepHeadY = -1e5;
     float sweepV = 1.0;
+    float sweepCol = 0.0;     // which runner (column, slot) is sweeping here
+    float sweepSlot = 0.0;
     float runUnder = 0.0;     // a merging head is drawn beneath the sitting drop it joins
     vec2 growCell = vec2(-1e5);   // big-drop cell that a runner merged into near this pixel
     float growVol = 0.0;
@@ -587,7 +589,7 @@ void main() {
                     float dx = p.x - pathHere;
                     // any pixel that could belong to a drop the head touches
                     float sw = (abs(dx) < rn.r * 3.0 + 80.0 * ps ? 1.0 : 0.0) * (1.0 - rn.dying);
-                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); }
+                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); sweepCol = col; sweepSlot = slotId; }
                 }
                 if (rn.merged > 0.0 && rn.stopVol > growVol) { growCell = rn.stopCell; growVol = rn.stopVol; }
 #else
@@ -687,11 +689,13 @@ void main() {
                 // the drop is pulled into the head and shrinks away over ~0.4 s
                 if (sweep > 0.001) {
                     float reach = sweepW * 1.05 + rr;
-                    if (abs(centre.x - sweepX) < reach) {
+                    // the path at the drop's own height, so every pixel of the drop agrees
+                    float pathAtDrop = rtPath(sweepCol, sweepSlot, centre.y);
+                    if (abs(centre.x - pathAtDrop) < reach) {
                         // seconds since the head's front touched the drop; the pull starts on contact
                         float tpass = (sweepHeadY + sweepW - (centre.y - rr)) / sweepV;
                         float gone = smoothstep(0.0, 0.22, tpass);
-                        centre.x += (sweepX - centre.x) * gone * 0.3;
+                        centre.x += (pathAtDrop - centre.x) * gone * 0.3;
                         exist *= 1.0 - gone;
                         rr *= 1.0 - gone;
                     }
