@@ -96,7 +96,7 @@ presets, edit config). Merge its keys into
 | `drops.irregularity` | `1.0` | gravity sag, outline wobble |
 | `drops.merge` | `1.0` | coalescence softness between touching drops |
 | `drops.layers` | `3` | 1..3 size classes |
-| `drops.fps` | `5` | refresh rate of the cached sitting-drop layer |
+| `drops.fps` | `10` | refresh rate of the cached sitting-drop layer |
 | **fog** | | condensation |
 | `fog.amount` | `0.45` | 0..1 how fogged the pane is (drops and tracks wipe it) |
 | `fog.grain` | `0.45` | micro-droplet texture |

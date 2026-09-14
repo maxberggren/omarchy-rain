@@ -648,8 +648,9 @@ void main() {
                 if (sweep > 0.001) {
                     float reach = sweepW * 1.05 + rr;
                     if (abs(centre.x - sweepX) < reach) {
-                        float tpass = (sweepHeadY - centre.y + rr * 0.5) / sweepV;   // seconds since the head reached it
-                        float gone = smoothstep(0.0, 0.4, tpass);
+                        // seconds since the head's front touched the drop; the pull starts on contact
+                        float tpass = (sweepHeadY + sweepW - (centre.y - rr)) / sweepV;
+                        float gone = smoothstep(0.0, 0.3, tpass);
                         centre.x += (sweepX - centre.x) * gone * 0.85;
                         centre.y += min(sweepHeadY - centre.y, rr * 1.5) * gone * 0.5;
                         exist *= 1.0 - gone;
