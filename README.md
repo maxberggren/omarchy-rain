@@ -63,8 +63,8 @@ omarchy-shell rain status
 | Key | Default | What it does |
 |---|---|---|
 | `enabled` | `true` | draw the rain layer at all |
-| `fps` | `60` | animation rate cap; `0` freezes time |
-| `renderScale` | `1.0` | shader resolution in logical pixels; `0.5` is much cheaper, `2.0` is native on HiDPI |
+| `fps` | `30` | animation rate cap; `0` freezes time |
+| `renderScale` | `1.0` | fraction of the screen's physical resolution; `0.5` is much cheaper |
 | `seed` | `0` | change to get a different pane |
 | `backgroundPath` | `""` | force an image instead of following the current wallpaper |
 | `screens` | `[]` | output names to draw on; empty means all |
@@ -74,36 +74,40 @@ omarchy-shell rain status
 | `rain.speed` | `1.0` | fall speed multiplier |
 | `rain.stickSlip` | `0.7` | 0..1 pulsed, pinning motion |
 | `rain.wander` | `1.0` | lateral meander |
-| `rain.trail` | `1.0` | pearling bead density on the track |
+| `rain.trail` | `0.3` | pearling bead density on the track |
 | `rain.trailWidth` | `1.0` | width of the wiped track |
 | `rain.trailEdge` | `1.0` | meniscus glints along the track edges |
 | `rain.layers` | `2` | 1..3 size classes of runners |
 | `rain.size` | `1.0` | runner size |
-| `rain.grow` | `0.5` | how much a runner grows as it sweeps drops |
+| `rain.grow` | `0.3` | how much a runner grows as it sweeps drops |
+| `rain.startAbove` | `true` | runners enter from above the top edge (`false`: they can start mid-pane) |
+| `rain.turn` | `0.35` | 0..1 how much a runner head turns to follow its path |
 | **drops** | | sessile (sitting) drops |
-| `drops.density` | `1.0` | count multiplier |
+| `drops.density` | `1.4` | count multiplier |
 | `drops.size` | `1.0` | size multiplier |
-| `drops.spawnRate` | `1.0` | how often new drops hit the pane |
+| `drops.spawnRate` | `2.0` | how often new drops hit the pane |
 | `drops.irregularity` | `1.0` | gravity sag, outline wobble |
 | `drops.merge` | `1.0` | coalescence softness between touching drops |
 | `drops.layers` | `3` | 1..3 size classes |
+| `drops.fps` | `12` | refresh rate of the cached sitting-drop layer |
 | **fog** | | condensation |
-| `fog.amount` | `0.6` | 0..1 how fogged the pane is (drops and tracks wipe it) |
-| `fog.grain` | `0.6` | micro-droplet texture |
-| `fog.regrow` | `0.8` | how fast a wiped track fogs up again |
-| `fog.halo` | `0.5` | dry ring around drops |
+| `fog.amount` | `0.45` | 0..1 how fogged the pane is (drops and tracks wipe it) |
+| `fog.grain` | `0.45` | micro-droplet texture |
+| `fog.regrow` | `1.4` | how fast a wiped track fogs up again |
+| `fog.halo` | `0.35` | dry ring around drops |
 | `fog.lift` | `0.6` | how milky/bright the condensation is |
-| `fog.tint` | `[0.75,0.85,1.0]` | colour of the scattered light |
+| `fog.tint` | `[0.85,0.88,0.94]` | colour of the scattered light |
 | `fog.tintStrength` | `0.25` | |
 | **optics** | | drop shading |
 | `optics.lensZoom` | `7.0` | field of view of the drop lens (inverted image) |
 | `optics.curvature` | `0.85` | how domed the drops are |
 | `optics.refraction` | `1.0` | overall refraction strength |
-| `optics.sharpness` | `0.85` | 0 = drops show the blurred scene, 1 = the sharp scene |
-| `optics.rimDark` | `0.55` | darkening of the rim facing the light |
+| `optics.sharpness` | `0.5` | 0 = drops show the blurred scene, 1 = the sharp scene |
+| `optics.rimDark` | `0.5` | dark cap on the lit side of the dome |
 | `optics.outline` | `0.6` | contact-line darkness |
-| `optics.brighten` | `0.25` | light gathered by the lens |
-| `optics.highlight` | `1.0` | pinpoint highlight and bright arc |
+| `optics.brighten` | `0.12` | light gathered by the lens |
+| `optics.contrast` | `1.0` | contrast of the lens image inside drops |
+| `optics.highlight` | `0.8` | pinpoint highlight and bright arc |
 | `optics.sheen` | `1.0` | soft broad sheen |
 | `optics.shadow` | `0.35` | shadow cast onto the pane |
 | `optics.light` | `[-0.45,-0.7,0.75]` | light direction (x right, y down, z toward viewer) |
@@ -118,20 +122,22 @@ omarchy-shell rain status
 | `blur.threshold` | `0.5` | luminance where bloom starts |
 | `blur.fogSpread` | `1.6` | condensation blur width |
 | **glass** | | |
-| `glass.scratches` | `0.25` | faint micro-scratches |
+| `glass.scratches` | `0.0` | faint micro-scratches (off by default) |
 | `glass.dust` | `0.3` | specks on the pane |
 | `glass.vignette` | `0.25` | |
 | **post** | | |
 | `post.brightness` | `1.0` | |
 | `post.contrast` | `1.0` | |
-| `post.saturation` | `1.0` | |
+| `post.saturation` | `0.8` | |
 | `post.filmic` | `0.35` | gentle S-curve |
 
 ## Performance
 
-The blur passes run once per wallpaper or config change. The rain pass runs
-every frame at `renderScale` times the logical resolution. On an integrated
-GPU use `"fps": 30` and/or `"renderScale": 0.5`, or `omarchy-shell rain preset cheap`.
+The blur passes run once per wallpaper or config change. The sitting drops
+are rendered into a cached layer at `drops.fps`. Only the sliding drops,
+their tracks, the condensation and the compositing run every frame, at
+`renderScale` times the screen's physical resolution. On an integrated GPU
+use `"fps": 30` and/or `"renderScale": 0.5`, or `omarchy-shell rain preset cheap`.
 `omarchy-shell rain pause` freezes the frame at zero cost.
 
 ## Development

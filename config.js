@@ -4,7 +4,7 @@
 
 var defaults = {
   "enabled": true,
-  "fps": 60,              // animation rate cap
+  "fps": 30,              // animation rate cap for the sliding drops
   "renderScale": 1.0,     // fraction of the screen's physical resolution; 0.5 = cheap
   "seed": 0,
   "backgroundPath": "",   // empty = follow omarchy's current background
@@ -38,7 +38,7 @@ var defaults = {
 
   "fog": {
     "amount": 0.45,       // 0..1 condensation on the glass
-    "grain": 0.8,         // micro-droplet texture of the condensation
+    "grain": 0.45,        // micro-droplet texture of the condensation
     "regrow": 1.4,        // how fast a wiped track fogs up again
     "halo": 0.35,         // dry ring around drops
     "lift": 0.6,          // how milky/bright the condensation is
@@ -50,11 +50,12 @@ var defaults = {
     "lensZoom": 7.0,      // field of view of the drop lens (inverted image)
     "curvature": 0.85,    // how domed the drops are
     "refraction": 1.0,    // overall refraction strength
-    "sharpness": 0.85,    // 0 = drops show the blurred scene, 1 = sharp scene
-    "rimDark": 0.6,       // dark cap on the lit side of the dome
+    "sharpness": 0.5,     // 0 = drops show the blurred scene, 1 = sharp scene
+    "rimDark": 0.5,       // dark cap on the lit side of the dome
     "outline": 0.6,       // contact-line darkness
-    "brighten": 0.3,      // light gathered by the drop lens
-    "highlight": 1.0,     // hard specular and bright arc
+    "brighten": 0.12,     // light gathered by the drop lens
+    "contrast": 1.0,      // contrast of the lens image inside drops
+    "highlight": 0.8,     // hard specular and bright arc
     "sheen": 1.0,         // soft broad sheen
     "shadow": 0.35,       // shadow cast onto the pane
     "light": [-0.45, -0.7, 0.75],

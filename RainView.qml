@@ -92,8 +92,10 @@ Item {
   // -------------------------------------------------------------- fog blur
   ShaderEffect {
     id: fogFx
-    width: Math.max(4, Math.round(view.rw / 4))
-    height: Math.max(4, Math.round(view.rh / 4))
+    // a fixed ~480 px wide pass so the condensation blur is the same width in
+    // screen terms at any render resolution
+    width: Math.max(4, Math.round(view.rw / (4 * view.pxScale)))
+    height: Math.max(4, Math.round(view.rh / (4 * view.pxScale)))
     visible: true
     property var src: blurSrc
     property vector2d resolution: Qt.vector2d(width, height)
@@ -204,7 +206,7 @@ Item {
     readonly property real dropMerge: view.num(view.cfg.drops.merge, 1)
     readonly property real dropLayers: view.num(view.cfg.drops.layers, 3)
     readonly property real fogAmount: view.num(view.cfg.fog.amount, 0.45)
-    readonly property real fogGrain: view.num(view.cfg.fog.grain, 0.8)
+    readonly property real fogGrain: view.num(view.cfg.fog.grain, 0.45)
     readonly property real fogRegrow: view.num(view.cfg.fog.regrow, 1.4)
     readonly property real fogHalo: view.num(view.cfg.fog.halo, 0.35)
     readonly property real fogLift: view.num(view.cfg.fog.lift, 0.6)
@@ -212,13 +214,14 @@ Item {
     readonly property real lensZoom: view.num(view.cfg.optics.lensZoom, 7)
     readonly property real curvature: view.num(view.cfg.optics.curvature, 0.85)
     readonly property real refraction: view.num(view.cfg.optics.refraction, 1)
-    readonly property real dropSharp: view.num(view.cfg.optics.sharpness, 0.85)
-    readonly property real rimDark: view.num(view.cfg.optics.rimDark, 0.6)
+    readonly property real dropSharp: view.num(view.cfg.optics.sharpness, 0.5)
+    readonly property real rimDark: view.num(view.cfg.optics.rimDark, 0.5)
     readonly property real outline: view.num(view.cfg.optics.outline, 0.6)
-    readonly property real highlight: view.num(view.cfg.optics.highlight, 1)
+    readonly property real highlight: view.num(view.cfg.optics.highlight, 0.8)
     readonly property real sheen: view.num(view.cfg.optics.sheen, 1)
     readonly property real shadow: view.num(view.cfg.optics.shadow, 0.35)
-    readonly property real brighten: view.num(view.cfg.optics.brighten, 0.3)
+    readonly property real brighten: view.num(view.cfg.optics.brighten, 0.12)
+    readonly property real dropContrast: view.num(view.cfg.optics.contrast, 1.0)
     readonly property real trailEdge: view.num(view.cfg.rain.trailEdge, 1)
     readonly property vector4d lightDir: { var l = view.vec3(view.cfg.optics.light, [-0.45, -0.7, 0.75]); return Qt.vector4d(l.x, l.y, l.z, view.num(view.cfg.optics.reflection, 0.25)); }
     readonly property vector4d reflectColor: { var c = view.vec3(view.cfg.optics.reflectionColor, [0.85, 0.9, 1.0]); return Qt.vector4d(c.x, c.y, c.z, view.num(view.cfg.optics.reflection, 0.25)); }
@@ -288,6 +291,7 @@ Item {
     property real sheen: u.sheen
     property real shadow: u.shadow
     property real brighten: u.brighten
+    property real dropContrast: u.dropContrast
     property real trailEdge: u.trailEdge
     property vector4d lightDir: u.lightDir
     property vector4d reflectColor: u.reflectColor
@@ -364,6 +368,7 @@ Item {
     property real sheen: u.sheen
     property real shadow: u.shadow
     property real brighten: u.brighten
+    property real dropContrast: u.dropContrast
     property real trailEdge: u.trailEdge
     property vector4d lightDir: u.lightDir
     property vector4d reflectColor: u.reflectColor

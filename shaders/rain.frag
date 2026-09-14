@@ -58,6 +58,7 @@ layout(std140, binding = 0) uniform buf {
     float sheen;
     float shadow;
     float brighten;        // light gathered by the drop lens
+    float dropContrast;    // contrast of the lens image relative to the pane
     float trailEdge;       // meniscus highlight along a wet track
     vec4  lightDir;        // xyz, reflection strength
     vec4  reflectColor;    // rgb, fresnel amount
@@ -249,7 +250,9 @@ vec2 mirrorUv(vec2 uv) {
 vec3 sampleBg(vec2 uv, float sharpMix) {
     vec3 b = texture(blurTex, uv).rgb;
     if (sharpMix <= 0.001) return b;
-    vec3 s = texture(sharpTex, uv).rgb;
+    // "sharp" means 1080p-level detail whatever the render resolution
+    float lod = max(0.0, log2(pxScale));
+    vec3 s = textureLod(sharpTex, uv, lod).rgb;
     return mix(b, s, sharpMix);
 }
 
@@ -283,7 +286,7 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     vec2 lensOff = acc.lens * refraction;
     vec2 dropUv = mirrorUv(uv + lensOff / resolution);
     vec3 inside = sampleBg(dropUv, dropSharp * mix(0.3, 1.0, sizeK) * f);
-    inside = (inside - 0.5) * (1.0 + 0.3 * f) + 0.5;
+    inside = (inside - 0.5) * mix(1.0, dropContrast, f) + 0.5;
     inside *= 1.0 + brighten * f;
     float inLum = dot(inside, vec3(0.2126, 0.7152, 0.0722));
     inside = mix(vec3(inLum), inside, 0.85);
@@ -314,7 +317,7 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     vec3 lightCol = vec3(0.95, 0.96, 1.0);
     vec3 dcol = inside * rim * ol + refl + spec * lightCol + arc * (inside * 0.9 + lightCol * 0.45);
     // anti-aliased coverage; a fading tail also gets a soft, blurred edge
-    float aa = mix(6.0 * ps, 1.5 * ps, f);
+    float aa = mix(6.0 * ps, 1.8 * ps, f);
     float cov = smoothstep(aa, -aa, acc.edge) * mix(0.0, 1.0, f);
     // bright Fresnel fringe just outside the contact line on the far side
     float fringe = (1.0 - smoothstep(0.0, 1.4 * ps, acc.edge)) * smoothstep(0.0, 1.0, acc.edge / max(0.4 * ps, 1e-3)) * arcDir * highlight * 0.35 * sizeK * f;
@@ -532,14 +535,14 @@ void main() {
     fogLocal *= (1.0 - trailClear * 0.85);
     fogLocal = clamp(fogLocal, 0.0, 1.0);
     // micro-droplets are lit from the light side: a stipple of bright and dark flanks
-    float gl = dot(gn, lxy) * 0.12;
+    float gl = dot(gn, lxy) * 0.07;
 
     // ------------------------------------------------------------- base
     vec2 bgUv = uv + gn * 2.5 * ps / resolution * fogLocal;
     vec3 clear = sampleBg(bgUv, 0.0);
     vec3 fogged = fogColor(bgUv) * (1.0 + gl);
     vec3 col = mix(clear, fogged, fogLocal);
-    col += glassAdd * 0.12 * fogLocal * fogGrain;
+    col += glassAdd * 0.06 * fogLocal * fogGrain;
     // meniscus: refract the pane slightly along the wet edge instead of painting a line
     col = mix(col, sampleBg(bgUv + vec2(0.0, 1.5 * ps / resolution.y), 0.0), trailMen * trailEdge * 0.5);
 
