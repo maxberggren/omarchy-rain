@@ -84,7 +84,8 @@ layout(binding = 5) uniform sampler2D runTex;
 layout(binding = 6) uniform sampler2D sessTex;
 #endif
 #define RT_COLS 64.0
-#define RT_ROWS 132.0
+#define RT_ROWS 264.0
+#define RT_CYC 4.0
 #define RT_SLOT 22.0
 #define RT_NS 32.0
 
@@ -200,7 +201,7 @@ void accMerge(inout Acc a, Acc b, float k) {
 vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHere) {
     vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
     if (hs.x > densHere) return vec4(0.0);
-    float exist = smoothstep(0.0, 0.08, densHere - hs.x);
+    float exist = 1.0;
     vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
     float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
     float T = PERIOD / ncyc;
@@ -343,6 +344,8 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     // after the head is long gone the track re-fogs and the beads evaporate,
     // so nothing pops when the cycle is dropped from evaluation
     rn.dying = smoothstep(T * 0.9, T * 1.8, tau);
+    // older cycles are kept alive in the table only for their sweep history
+    if (rn.dying >= 1.0 && tau > T * 3.9) rn.alive = 0.0;
     return rn;
 }
 
@@ -369,11 +372,11 @@ float rtWidth(float col, float slot, float y) { return rtCurve(col, slot, 14.0, 
 // Cheap first look: alive, head y, radius, column centre. Only runners that
 // can reach this pixel are fetched in full.
 vec4 runnerPeek(float col, float layer, float cycle) {
-    return rtFetch(col, layer * 2.0 + cycle, 0.0);
+    return rtFetch(col, layer * RT_CYC + cycle, 0.0);
 }
 Runner runnerFetch(float col, float layer, float cycle, float colW, vec4 t0) {
     Runner rn;
-    float slot = layer * 2.0 + cycle;
+    float slot = layer * RT_CYC + cycle;
     rn.alive = t0.x; rn.head.y = t0.y; rn.r = t0.z; rn.xc = t0.w;
     vec4 t1 = rtFetch(col, slot, 1.0);
     rn.y0 = t1.x; rn.v = t1.y; rn.head.x = t1.z; rn.tw = t1.w;
@@ -485,8 +488,8 @@ void main() {
     float row = floor(qt_TexCoord0.y * RT_ROWS);
     float slot = floor(row / RT_SLOT);
     float g = row - slot * RT_SLOT;
-    int l = int(floor(slot / 2.0));
-    float c = slot - float(l) * 2.0;
+    int l = int(floor(slot / RT_CYC));
+    float c = slot - float(l) * RT_CYC;
     float fl = float(l);
     float ps = pxScale;
     int layers = int(clamp(rainLayers, 1.0, 3.0));
@@ -555,6 +558,7 @@ void main() {
     float sweepV = 1.0;
     float sweepCol = 0.0;     // which runner (column, slot) is sweeping here
     float sweepSlot = 0.0;
+    float sweepBorn = 0.0;
     float runUnder = 0.0;     // a merging head is drawn beneath the sitting drop it joins
     vec2 growCell = vec2(-1e5);   // big-drop cell that a runner merged into near this pixel
     float growVol = 0.0;
@@ -572,14 +576,22 @@ void main() {
         for (int j = -1; j <= 1; j++) {
             float col = colIdx + float(j);
             if (col < 0.0 || col >= RT_COLS) continue;
+#ifdef SESSILE
+            for (int c = 0; c < 4; c++) {
+#else
             for (int c = 0; c < 2; c++) {
+#endif
                 vec4 t0 = runnerPeek(col, fl, float(c));
                 if (t0.x < 0.5) continue;
                 // a runner never strays further than this from its column centre
                 if (abs(p.x - t0.w) > colW * 0.75 + t0.z * 4.0 + 80.0 * ps) continue;
                 Runner rn = runnerFetch(col, fl, float(c), colW, t0);
+#ifndef SESSILE
                 if (rn.dying > 0.999) continue;
-                float slotId = fl * 2.0 + float(c);
+                // a head melting into a bigger drop shrinks rather than fading
+                rn.r *= 1.0 - 0.85 * rn.merged;
+#endif
+                float slotId = fl * RT_CYC + float(c);
                 float pathHere = rtPath(col, slotId, p.y);
                 float dxp = p.x - pathHere;
                 float dyh = p.y - rn.head.y;
@@ -588,8 +600,9 @@ void main() {
                 if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
                     // any pixel that could belong to a drop the head touches
-                    float sw = (abs(dx) < rn.r * 3.0 + 80.0 * ps ? 1.0 : 0.0) * (1.0 - rn.dying);
-                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); sweepCol = col; sweepSlot = slotId; }
+                    // the most recent runner through here decides; history is kept for 4 cycles
+                    float sw = (abs(dx) < rn.r * 3.0 + 80.0 * ps ? 1.0 : 0.0) * (0.5 + 0.5 * (1.0 - rn.dying)) * (1.0 + 0.001 * rn.born);
+                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); sweepCol = col; sweepSlot = slotId; sweepBorn = rn.born; }
                 }
                 if (rn.merged > 0.0 && rn.stopVol > growVol) { growCell = rn.stopCell; growVol = rn.stopVol; }
 #else
@@ -666,7 +679,7 @@ void main() {
     int dl = int(clamp(dropLayers, 1.0, 3.0));
     // per-layer cell size / density as seen from this pixel
     float csL[3]; float densL[3];
-    for (int l = 0; l < 3; l++) { csL[l] = layerCell(l); densL[l] = layerDens(l) * layerCluster(l, p, layerCell(l)); }
+    for (int l = 0; l < 3; l++) { csL[l] = layerCell(l); densL[l] = layerDens(l); }
     for (int l = 0; l < 3; l++) {
         if (l >= dl) break;
         float fl = float(l);
@@ -680,7 +693,9 @@ void main() {
         for (int y = 0; y <= 1; y++) {
             for (int x = 0; x <= 1; x++) {
                 vec2 cc = cell + vec2(float(x), float(y));
-                vec4 me = sessileAt(cc, fl, cs, rMin, rMax, densHere);
+                // density is decided per cell so every pass agrees on which drops exist
+                float densCell = densHere * layerCluster(l, (cc + 0.5) * cs, cs);
+                vec4 me = sessileAt(cc, fl, cs, rMin, rMax, densCell);
                 if (me.w <= 0.0) continue;
                 vec2 centre = me.xy;
                 float exist = me.w;
@@ -695,9 +710,19 @@ void main() {
                         // seconds since the head's front touched the drop; the pull starts on contact
                         float tpass = (sweepHeadY + sweepW - (centre.y - rr)) / sweepV;
                         float gone = smoothstep(0.0, 0.22, tpass);
-                        centre.x += (pathAtDrop - centre.x) * gone * 0.3;
-                        exist *= 1.0 - gone;
-                        rr *= 1.0 - gone;
+                        // the cell stays dry until rain lands a fresh drop there,
+                        // 15..90 s later, with the usual splash
+                        float delay = mix(15.0, 90.0, hash12(cc * 0.37 + vec2(sweepBorn * 0.013, fl)));
+                        float tl2 = tpass - delay;
+                        float reborn = 0.0;
+                        if (tl2 > 0.0) {
+                            float tt = min(tl2 / 0.5, 1.0);
+                            reborn = tt < 0.2 ? smoothstep(0.0, 0.2, tt) * 1.15 : (1.0 + 0.15 * exp(-(tt - 0.2) * 6.0) * cos((tt - 0.2) * 34.0));
+                        }
+                        float keep = (1.0 - gone) + gone * reborn;
+                        centre.x += (pathAtDrop - centre.x) * gone * (1.0 - min(reborn, 1.0)) * 0.3;
+                        exist *= min(keep, 1.0);
+                        rr *= keep;
                     }
                 }
                 if (rr < 0.6) continue;
@@ -714,7 +739,7 @@ void main() {
                     for (int ny = -1; ny <= 1; ny++) for (int nx = -1; nx <= 1; nx++) {
                         if (nx == 0 && ny == 0) continue;
                         vec2 nc = cc + vec2(float(nx), float(ny));
-                        vec4 nb = sessileBase(nc, fl, cs, rMin, rMax, densHere);
+                        vec4 nb = sessileBase(nc, fl, cs, rMin, rMax, densHere * layerCluster(l, (nc + 0.5) * cs, cs));
                         if (nb.w <= 0.0 || nb.z < 0.6) continue;
                         float dist = length(nb.xy - centre);
                         float touch = smoothstep(0.95 * (rr + nb.z), 0.8 * (rr + nb.z), dist);
@@ -731,7 +756,8 @@ void main() {
                     float bcs = csL[bl];
                     vec2 bcell = floor(centre / bcs - 0.5);
                     for (int by = 0; by <= 1; by++) for (int bx = 0; bx <= 1; bx++) {
-                        vec4 big = sessileBase(bcell + vec2(float(bx), float(by)), float(bl), bcs, 1.9 * ps, bcs * 0.36, densL[bl]);
+                        vec2 bcc = bcell + vec2(float(bx), float(by));
+                        vec4 big = sessileBase(bcc, float(bl), bcs, 1.9 * ps, bcs * 0.36, densL[bl] * layerCluster(bl, (bcc + 0.5) * bcs, bcs));
                         if (big.w <= 0.0 || big.z < 0.6) continue;
                         float dist = length(big.xy - centre);
                         absorbed = max(absorbed, smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist));
