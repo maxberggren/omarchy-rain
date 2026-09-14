@@ -11,7 +11,7 @@ var defaults = {
   "screens": [],          // empty = all screens; else list of output names
 
   "rain": {
-    "amount": 0.3,        // 0..1 share of columns carrying sliding drops
+    "amount": 0.45,       // 0..1 share of columns carrying sliding drops
     "spawnRate": 1.0,     // how often a new runner starts (multiplier)
     "speed": 1.0,         // fall speed (multiplier)
     "stickSlip": 0.85,    // 0..1 pulsed, pinning motion

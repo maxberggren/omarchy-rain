@@ -187,7 +187,7 @@ Item {
   QtObject {
     id: u
     readonly property real seed: view.num(view.cfg.seed, 0)
-    readonly property real rainAmount: view.num(view.cfg.rain.amount, 0.3)
+    readonly property real rainAmount: view.num(view.cfg.rain.amount, 0.45)
     readonly property real rainSpawn: view.num(view.cfg.rain.spawnRate, 1)
     readonly property real rainSpeed: view.num(view.cfg.rain.speed, 1)
     readonly property real rainStickSlip: view.num(view.cfg.rain.stickSlip, 0.85)

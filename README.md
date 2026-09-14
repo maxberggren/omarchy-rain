@@ -75,7 +75,7 @@ presets, edit config). Merge its keys into
 | `backgroundPath` | `""` | force an image instead of following the current wallpaper |
 | `screens` | `[]` | output names to draw on; empty means all |
 | **rain** | | sliding drops (runners) |
-| `rain.amount` | `0.3` | 0..1 share of the pane's columns that carry runners |
+| `rain.amount` | `0.45` | 0..1 share of the pane's columns that carry runners |
 | `rain.spawnRate` | `1.0` | how often a column starts a new runner |
 | `rain.speed` | `1.0` | fall speed multiplier |
 | `rain.stickSlip` | `0.85` | 0..1 pulsed, pinning motion |

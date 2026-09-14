@@ -220,10 +220,11 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     if (tau < 0.0) return rn;
     float H = resolution.y;
     float y0 = mix(mix(-0.08, 0.55, hc.y * hc.y), mix(-0.3, -0.06, hc.y), rainStartAbove) * H;
-    float v = rainSpeed * mix(50.0, 150.0, hc.z) * pxScale;
+    // wide spread of speeds, skewed toward slow, and no sprinters
+    float v = rainSpeed * mix(22.0, 105.0, hc.z * hc.z) * pxScale;
     // must reach the bottom well inside its cycle so the track can fade out
     v = max(v, (H * 1.15 - y0) / (0.9 * T));
-    float accel = 0.03;
+    float accel = 0.018;
     float omega = 2.0 * PI / mix(0.8, 1.9, hc.w);
     float stick = rainStickSlip * 0.95;
     float y = y0 + v * (tau + accel * tau * tau) - stick * v / omega * (sin(omega * tau + hc.x * 6.28) - sin(hc.x * 6.28));
@@ -424,7 +425,7 @@ void main() {
             float hcol = hash12(vec2(col * 3.3 + fl * 17.0, seed + fl));
             float thin = (l == 0) ? 1.0 : (l == 1 ? 0.7 : 0.5);
             if (hcol > rainAmount * thin) continue;
-            float ncyc = max(floor(mix(10.0, 36.0, hash11(col * 7.7 + fl * 3.1 + seed)) * clamp(rainSpawn, 0.05, 8.0)), 1.0);
+            float ncyc = max(floor(mix(6.0, 20.0, hash11(col * 7.7 + fl * 3.1 + seed)) * clamp(rainSpawn, 0.05, 8.0)), 1.0);
             float T = PERIOD / ncyc;
             float k = floor(time / T);
             for (int c = 0; c < 2; c++) {
