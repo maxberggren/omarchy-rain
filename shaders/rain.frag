@@ -591,8 +591,9 @@ void main() {
                 }
                 if (rn.merged > 0.0 && rn.stopVol > growVol) { growCell = rn.stopCell; growVol = rn.stopVol; }
 #else
-                if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
-                    float dx = p.x - pathHere;
+                // only pixels that can lie inside the widest possible track do the track math
+                if (p.y < rn.head.y && p.y > rn.y0 - rn.r && abs(dxp) < rn.tw * 1.9 + 6.0 * ps) {
+                    float dx = dxp;
                     float wn = rtWidth(col, slotId, p.y);
                     float wn2 = vnoise(vec2(p.y / (16.0 * ps), rn.col * 5.0 + fl + 3.0));
                     float tw = rn.tw * (0.8 + 0.3 * (wn - 0.5) * 2.0 + 0.12 * (wn2 - 0.5) * 2.0);

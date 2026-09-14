@@ -88,7 +88,7 @@ presets, edit config). Merge its keys into
 | `rain.size` | `1.0` | runner size |
 | `rain.grow` | `0.7` | how much a runner grows with every drop it picks up |
 | `rain.startAbove` | `true` | runners enter from above the top edge (`false`: they can start mid-pane) |
-| `rain.turn` | `0.35` | 0..1 how much a runner head turns to follow its path |
+| `rain.turn` | `0.7` | 0..1 how much a runner head turns to follow its path |
 | **drops** | | sessile (sitting) drops |
 | `drops.density` | `1.1` | count multiplier |
 | `drops.size` | `1.0` | size multiplier |

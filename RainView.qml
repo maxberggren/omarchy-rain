@@ -198,7 +198,7 @@ Item {
     readonly property real rainSize: view.num(view.cfg.rain.size, 1)
     readonly property real rainGrow: view.num(view.cfg.rain.grow, 0.7)
     readonly property real rainStartAbove: view.cfg.rain.startAbove === false ? 0 : 1
-    readonly property real rainTurn: view.num(view.cfg.rain.turn, 0.35)
+    readonly property real rainTurn: view.num(view.cfg.rain.turn, 0.7)
     readonly property real dropDensity: view.num(view.cfg.drops.density, 1.1)
     readonly property real dropSize: view.num(view.cfg.drops.size, 1)
     readonly property real dropSpawn: view.num(view.cfg.drops.spawnRate, 2)
