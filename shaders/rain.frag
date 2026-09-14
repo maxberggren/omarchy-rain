@@ -49,6 +49,7 @@ layout(std140, binding = 0) uniform buf {
 
     // optics
     float lensZoom;
+    float lensField;       // extra field of view in screen heights, independent of drop size
     float curvature;
     float refraction;
     float dropSharp;
@@ -161,7 +162,7 @@ void addDrop(inout Acc a, vec2 d, float rx, float ryUp, float ryDown, float wobb
     a.h = mix(a.h, h, t) + k * t * (1.0 - t);
     vec2 n = uvn * curvature * dome;
     // fisheye-ish mapping: the field of view grows toward the rim
-    vec2 lens = -uvn * curvature * dome * lensK * r * (1.0 + 0.5 * q);
+    vec2 lens = -uvn * curvature * dome * (lensK * r + lensField * resolution.y) * (1.0 + 0.5 * q);
     a.n = mix(a.n, n, t);
     a.lens = mix(a.lens, lens, t);
     a.fade = mix(a.fade, fade, t);
@@ -229,7 +230,17 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     rn.alive = 1.0;
     rn.y0 = y0;
     rn.widthVar = mix(0.6, 1.5, hc.w);
-    rn.r = rBase * mix(0.75, 1.15, hc.w) * (1.0 + rainGrow * 0.5 * clamp((y - y0) / (0.6 * H), 0.0, 1.0));
+    // pickups: every so often the head swallows a sitting drop and jumps in size
+    float seg = 55.0 * pxScale;
+    float nseg = (y - y0) / seg;
+    float picked = 0.0;
+    for (int i = 0; i < 24; i++) {
+        float fi = float(i);
+        if (fi > nseg) break;
+        float hp = hash11(fi * 3.7 + col * 11.3 + cycleK * 0.61 + layer * 5.0 + seed);
+        if (hp < 0.45) picked += smoothstep(fi, fi + 0.25, nseg) * (0.5 + hp);
+    }
+    rn.r = rBase * mix(0.75, 1.15, hc.w) * pow(1.0 + rainGrow * 0.6 * picked, 0.4);
     rn.v = v * (1.0 + 2.0 * accel * tau);
     rn.xc = (col + 0.5) * colW + (hc.y - 0.5) * colW * 0.5;
     rn.head = vec2(rn.xc + pathX(y, col, layer, colW, rn.widthVar), y);
@@ -289,7 +300,7 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     inside = (inside - 0.5) * mix(1.0, dropContrast, f) + 0.5;
     inside *= 1.0 + brighten * f;
     float inLum = dot(inside, vec3(0.2126, 0.7152, 0.0722));
-    inside = mix(vec3(inLum), inside, 0.85);
+    inside = mix(vec3(inLum), inside, 0.8);
 
     // dark cap: a crescent over the top ~30% of the radius on the lit side,
     // where grazing refraction and TIR remove the transmitted light
@@ -299,8 +310,8 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     float arcDir = max(dot(outward, -lxy), 0.0);
     float arc = pow(arcDir, 2.0) * smoothstep(0.62, 0.97, rad) * (1.0 - smoothstep(0.985, 1.0, rad)) * highlight * 0.7 * f;
     // neutral contact line, world-space width
-    float olw = max(1.0 * ps, 0.04 * acc.rNear);
-    float ol = 1.0 - outline * mix(0.3, 1.0, sizeK) * smoothstep(olw, 0.0, abs(acc.edge)) * 0.4 * f;
+    float olw = max(1.2 * ps, 0.05 * acc.rNear);
+    float ol = 1.0 - outline * mix(0.3, 1.0, sizeK) * smoothstep(olw, 0.0, abs(acc.edge)) * 0.5 * f;
     // reflections of the room on the lit side of the dome
     float fres = 0.02 + 0.98 * pow(steep, 5.0);
     vec3 reflScene = texture(blurTex, mirrorUv(uv + outward * 0.15 * steep)).rgb;
@@ -324,6 +335,42 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy) {
     return vec4(dcol * cov + fringe * (pane * 0.8 + 0.15), cov);
 }
 
+
+#ifdef SESSILE
+// Geometry of the sitting drop that cell `cc` of layer `fl` may hold:
+// xy = centre (px), z = radius (px) including its life cycle, w = existence.
+vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHere) {
+    vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
+    if (hs.x > densHere) return vec4(0.0);
+    float exist = smoothstep(0.0, 0.08, densHere - hs.x);
+    vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
+    float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
+    float T = PERIOD / ncyc;
+    float tl = mod(time + hs.x * T * 5.0, T);
+    float k = floor((time + hs.x * T * 5.0) / T);
+    vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
+    float a1 = 1.55;
+    float ratio = pow(rMin / rMax, a1);
+    float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
+    float pop = 1.0;
+    if (tl < 0.5) {
+        float tt = tl / 0.5;
+        pop = tt < 0.2 ? smoothstep(0.0, 0.2, tt) * 1.15 : (1.0 + 0.15 * exp(-(tt - 0.2) * 6.0) * cos((tt - 0.2) * 34.0));
+    }
+    float grow = 0.85 + 0.15 * clamp(tl / (0.5 * T), 0.0, 1.0);
+    // drops do not vanish in the rain; only a very slow shrink at the end of
+    // a long life, so the pane slowly renews itself
+    float ev = clamp((tl - 0.6 * T) / (0.4 * T), 0.0, 1.0);
+    float evap = 1.0 - ev * ev;
+    return vec4(centre, r * pop * grow * evap * exist, exist);
+}
+
+float layerCell(int l) { return (l == 0 ? 74.0 : (l == 1 ? 38.0 : 19.0)) * pxScale * dropSize; }
+float layerDens(int l) { return dropDensity * (l == 0 ? 0.5 : (l == 1 ? 0.62 : 0.9)); }
+float layerCluster(int l, vec2 p, float cs) {
+    return 0.3 + 1.4 * vnoise(p / (cs * (l == 0 ? 4.8 : (l == 1 ? 9.0 : 18.0))) + vec2(seed * 3.0, 9.0));
+}
+#endif
 
 void main() {
     vec2 uv = qt_TexCoord0;
@@ -447,60 +494,79 @@ void main() {
     // dry halo and their shadow, as a premultiplied layer over the pane.
     Acc sess; accInit(sess);
     int dl = int(clamp(dropLayers, 1.0, 3.0));
+    // per-layer cell size / density as seen from this pixel
+    float csL[3]; float densL[3];
+    for (int l = 0; l < 3; l++) { csL[l] = layerCell(l); densL[l] = layerDens(l) * layerCluster(l, p, layerCell(l)); }
     for (int l = 0; l < 3; l++) {
         if (l >= dl) break;
         float fl = float(l);
-        float cs = (l == 0 ? 74.0 : (l == 1 ? 38.0 : 19.0)) * ps * dropSize;
-        float dens = dropDensity * (l == 0 ? 0.5 : (l == 1 ? 0.62 : 0.9));
+        float cs = csL[l];
+        float densHere = densL[l];
         float rMax = cs * 0.42;
         float rMin = 1.3 * ps;
         // the four cells whose centres are nearest: a drop never reaches
         // further than jitter + rMax < 1 cell from its own centre
         vec2 cell = floor(p / cs - 0.5);
-        // drops cluster: patches of the pane are wetter than others. The
-        // patch noise is far smoother than any drop, so it is sampled once per
-        // pixel and drops near the threshold shrink instead of being cut.
-        float cluster = 0.3 + 1.4 * vnoise(p / (cs * (l == 0 ? 4.8 : (l == 1 ? 9.0 : 18.0))) + vec2(seed * 3.0, 9.0));
-        float densHere = dens * cluster;
         for (int y = 0; y <= 1; y++) {
             for (int x = 0; x <= 1; x++) {
                 vec2 cc = cell + vec2(float(x), float(y));
-                vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
-                if (hs.x > densHere) continue;
-                float exist = smoothstep(0.0, 0.08, densHere - hs.x);
-                vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
+                vec4 me = sessileAt(cc, fl, cs, rMin, rMax, densHere);
+                if (me.w <= 0.0) continue;
+                vec2 centre = me.xy;
+                float exist = me.w;
+                float rr = me.z;
                 if (sweep > 0.001) {
                     float inBand = smoothstep(sweepW, sweepW * 0.75, abs(centre.x - sweepX));
                     exist *= 1.0 - inBand * sweep;
                 }
-                // life cycle: appears with a splash, grows by condensation,
-                // then slowly evaporates instead of popping out
-                float ncyc = max(floor(mix(3.0, 10.0, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
-                float T = PERIOD / ncyc;
-                float tl = mod(time + hs.x * T * 5.0, T);
-                float k = floor((time + hs.x * T * 5.0) / T);
-                vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
-                // power-law size distribution: many tiny, few large
-                float a1 = 1.55;
-                float ratio = pow(rMin / rMax, a1);
-                float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
-                float pop = 1.0;
-                if (tl < 0.5) {
-                    float tt = tl / 0.5;
-                    pop = tt < 0.2 ? smoothstep(0.0, 0.2, tt) * 1.15 : (1.0 + 0.15 * exp(-(tt - 0.2) * 6.0) * cos((tt - 0.2) * 34.0));
-                }
-                float grow = 0.85 + 0.15 * clamp(tl / (0.5 * T), 0.0, 1.0);
-                float evap = 1.0 - smoothstep(0.7 * T, T, tl);
-                float rr = r * pop * grow * evap * exist;
                 if (rr < 0.6) continue;
                 vec2 d = p - centre;
+                if (abs(d.x) > rr * 3.0 || abs(d.y) > rr * 3.0) continue;
+
+                // coalescence: water does not overlap. A drop touching a bigger
+                // neighbour is absorbed by it; the bigger one grows by the volume.
+                float vol = rr * rr * rr;
+                float absorbed = 0.0;
+                if (l < 2) {
+                    for (int ny = -1; ny <= 1; ny++) for (int nx = -1; nx <= 1; nx++) {
+                        if (nx == 0 && ny == 0) continue;
+                        vec2 nc = cc + vec2(float(nx), float(ny));
+                        vec4 nb = sessileAt(nc, fl, cs, rMin, rMax, densHere);
+                        if (nb.w <= 0.0 || nb.z < 0.6) continue;
+                        float dist = length(nb.xy - centre);
+                        float touch = smoothstep(0.95 * (rr + nb.z), 0.8 * (rr + nb.z), dist);
+                        if (touch <= 0.0) continue;
+                        // tie-break by cell hash so exactly one side wins
+                        bool theyWin = nb.z > rr || (nb.z == rr && hash12(nc) > hash12(cc));
+                        if (theyWin) absorbed = max(absorbed, touch);
+                        else vol += nb.z * nb.z * nb.z * touch;
+                    }
+                }
+                // smaller layers are swallowed by any bigger-layer drop they touch
+                for (int bl = 0; bl < 2; bl++) {
+                    if (bl >= l) break;
+                    float bcs = csL[bl];
+                    vec2 bcell = floor(centre / bcs - 0.5);
+                    for (int by = 0; by <= 1; by++) for (int bx = 0; bx <= 1; bx++) {
+                        vec4 big = sessileAt(bcell + vec2(float(bx), float(by)), float(bl), bcs, 1.3 * ps, bcs * 0.42, densL[bl]);
+                        if (big.w <= 0.0 || big.z < 0.6) continue;
+                        float dist = length(big.xy - centre);
+                        absorbed = max(absorbed, smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist));
+                    }
+                }
+                rr = pow(vol, 1.0 / 3.0) * (1.0 - absorbed);
+                if (rr < 0.6) continue;
+                d = p - centre;
                 if (abs(d.x) > rr * 2.2 || abs(d.y) > rr * 2.6) continue;
+
+                vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
+                vec3 hk = hash32(cc * 0.71 + vec2(fl, seed));
                 float sag = clamp(rr / (20.0 * ps), 0.0, 1.0) * dropIrregular;
                 float rx = rr * (0.98 + 0.08 * (hk.y - 0.5) * dropIrregular);
                 float ryUp = rr * (0.94 - 0.04 * sag);
                 float ryDown = rr * (1.10 + 0.10 * sag);
                 float wob = 0.045 * dropIrregular * (0.4 + 0.6 * hk.z);
-                addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.12 + 0.2 * dropMerge, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
+                addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
             }
         }
     }

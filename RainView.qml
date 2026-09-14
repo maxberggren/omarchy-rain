@@ -71,9 +71,9 @@ Item {
     property real radius: view.num(view.cfg.blur.radius, 26) * view.pxScale
     property real blades: view.num(view.cfg.blur.blades, 0)
     property real rotation: view.num(view.cfg.blur.rotation, 0)
-    property real boost: view.num(view.cfg.blur.highlightBoost, 3.5)
+    property real boost: view.num(view.cfg.blur.highlightBoost, 4)
     property real ring: view.num(view.cfg.blur.ring, 0.6)
-    property real threshold: view.num(view.cfg.blur.threshold, 0.5)
+    property real threshold: view.num(view.cfg.blur.threshold, 0.35)
     fragmentShader: Qt.resolvedUrl("shaders/lensblur.frag.qsb")
     onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: lensblur shader failed:", log)
   }
@@ -190,13 +190,13 @@ Item {
     readonly property real rainAmount: view.num(view.cfg.rain.amount, 0.3)
     readonly property real rainSpawn: view.num(view.cfg.rain.spawnRate, 1)
     readonly property real rainSpeed: view.num(view.cfg.rain.speed, 1)
-    readonly property real rainStickSlip: view.num(view.cfg.rain.stickSlip, 0.7)
+    readonly property real rainStickSlip: view.num(view.cfg.rain.stickSlip, 0.85)
     readonly property real rainWander: view.num(view.cfg.rain.wander, 1)
     readonly property real rainTrail: view.num(view.cfg.rain.trail, 0.3)
     readonly property real rainTrailWidth: view.num(view.cfg.rain.trailWidth, 1)
     readonly property real rainLayers: view.num(view.cfg.rain.layers, 2)
     readonly property real rainSize: view.num(view.cfg.rain.size, 1)
-    readonly property real rainGrow: view.num(view.cfg.rain.grow, 0.3)
+    readonly property real rainGrow: view.num(view.cfg.rain.grow, 0.7)
     readonly property real rainStartAbove: view.cfg.rain.startAbove === false ? 0 : 1
     readonly property real rainTurn: view.num(view.cfg.rain.turn, 0.35)
     readonly property real dropDensity: view.num(view.cfg.drops.density, 1.4)
@@ -212,6 +212,7 @@ Item {
     readonly property real fogLift: view.num(view.cfg.fog.lift, 0.6)
     readonly property vector4d fogTint: { var t = view.vec3(view.cfg.fog.tint, [0.85, 0.88, 0.94]); return Qt.vector4d(t.x, t.y, t.z, view.num(view.cfg.fog.tintStrength, 0.25)); }
     readonly property real lensZoom: view.num(view.cfg.optics.lensZoom, 7)
+    readonly property real lensField: view.num(view.cfg.optics.field, 0.06)
     readonly property real curvature: view.num(view.cfg.optics.curvature, 0.85)
     readonly property real refraction: view.num(view.cfg.optics.refraction, 1)
     readonly property real dropSharp: view.num(view.cfg.optics.sharpness, 0.5)
@@ -219,7 +220,7 @@ Item {
     readonly property real outline: view.num(view.cfg.optics.outline, 0.6)
     readonly property real highlight: view.num(view.cfg.optics.highlight, 0.8)
     readonly property real sheen: view.num(view.cfg.optics.sheen, 1)
-    readonly property real shadow: view.num(view.cfg.optics.shadow, 0.35)
+    readonly property real shadow: view.num(view.cfg.optics.shadow, 0.5)
     readonly property real brighten: view.num(view.cfg.optics.brighten, 0.12)
     readonly property real dropContrast: view.num(view.cfg.optics.contrast, 1.0)
     readonly property real trailEdge: view.num(view.cfg.rain.trailEdge, 1)
@@ -282,6 +283,7 @@ Item {
     property real fogLift: u.fogLift
     property vector4d fogTint: u.fogTint
     property real lensZoom: u.lensZoom
+    property real lensField: u.lensField
     property real curvature: u.curvature
     property real refraction: u.refraction
     property real dropSharp: u.dropSharp
@@ -359,6 +361,7 @@ Item {
     property real fogLift: u.fogLift
     property vector4d fogTint: u.fogTint
     property real lensZoom: u.lensZoom
+    property real lensField: u.lensField
     property real curvature: u.curvature
     property real refraction: u.refraction
     property real dropSharp: u.dropSharp

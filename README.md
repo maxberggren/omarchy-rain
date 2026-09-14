@@ -72,14 +72,14 @@ omarchy-shell rain status
 | `rain.amount` | `0.3` | 0..1 share of the pane's columns that carry runners |
 | `rain.spawnRate` | `1.0` | how often a column starts a new runner |
 | `rain.speed` | `1.0` | fall speed multiplier |
-| `rain.stickSlip` | `0.7` | 0..1 pulsed, pinning motion |
+| `rain.stickSlip` | `0.85` | 0..1 pulsed, pinning motion |
 | `rain.wander` | `1.0` | lateral meander |
 | `rain.trail` | `0.3` | pearling bead density on the track |
 | `rain.trailWidth` | `1.0` | width of the wiped track |
 | `rain.trailEdge` | `1.0` | meniscus glints along the track edges |
 | `rain.layers` | `2` | 1..3 size classes of runners |
 | `rain.size` | `1.0` | runner size |
-| `rain.grow` | `0.3` | how much a runner grows as it sweeps drops |
+| `rain.grow` | `0.7` | how much a runner grows with every drop it picks up |
 | `rain.startAbove` | `true` | runners enter from above the top edge (`false`: they can start mid-pane) |
 | `rain.turn` | `0.35` | 0..1 how much a runner head turns to follow its path |
 | **drops** | | sessile (sitting) drops |
@@ -99,7 +99,8 @@ omarchy-shell rain status
 | `fog.tint` | `[0.85,0.88,0.94]` | colour of the scattered light |
 | `fog.tintStrength` | `0.25` | |
 | **optics** | | drop shading |
-| `optics.lensZoom` | `7.0` | field of view of the drop lens (inverted image) |
+| `optics.lensZoom` | `7.0` | field of view of the drop lens, scaled by drop size |
+| `optics.field` | `0.06` | extra field of view (in screen heights) that even tiny drops show |
 | `optics.curvature` | `0.85` | how domed the drops are |
 | `optics.refraction` | `1.0` | overall refraction strength |
 | `optics.sharpness` | `0.5` | 0 = drops show the blurred scene, 1 = the sharp scene |
@@ -109,7 +110,7 @@ omarchy-shell rain status
 | `optics.contrast` | `1.0` | contrast of the lens image inside drops |
 | `optics.highlight` | `0.8` | pinpoint highlight and bright arc |
 | `optics.sheen` | `1.0` | soft broad sheen |
-| `optics.shadow` | `0.35` | shadow cast onto the pane |
+| `optics.shadow` | `0.5` | shadow cast onto the pane |
 | `optics.light` | `[-0.45,-0.7,0.75]` | light direction (x right, y down, z toward viewer) |
 | `optics.reflection` | `0.25` | room/sky reflection amount |
 | `optics.reflectionColor` | `[0.85,0.9,1.0]` | |
@@ -117,9 +118,9 @@ omarchy-shell rain status
 | `blur.radius` | `26` | radius in px at 1080p |
 | `blur.blades` | `0` | 0 = round aperture, 5..9 = polygonal bokeh |
 | `blur.rotation` | `0.3` | aperture rotation in radians |
-| `blur.highlightBoost` | `3.5` | bright points bloom into discs |
+| `blur.highlightBoost` | `4.0` | bright points bloom into discs |
 | `blur.ring` | `0.6` | bright-rimmed bokeh discs |
-| `blur.threshold` | `0.5` | luminance where bloom starts |
+| `blur.threshold` | `0.35` | luminance where bloom starts |
 | `blur.fogSpread` | `1.6` | condensation blur width |
 | **glass** | | |
 | `glass.scratches` | `0.0` | faint micro-scratches (off by default) |

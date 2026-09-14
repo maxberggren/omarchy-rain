@@ -14,14 +14,14 @@ var defaults = {
     "amount": 0.3,        // 0..1 share of columns carrying sliding drops
     "spawnRate": 1.0,     // how often a new runner starts (multiplier)
     "speed": 1.0,         // fall speed (multiplier)
-    "stickSlip": 0.7,     // 0..1 pulsed, pinning motion
+    "stickSlip": 0.85,    // 0..1 pulsed, pinning motion
     "wander": 1.0,        // lateral meander (multiplier)
     "trail": 0.3,         // pearling droplet density on the track
     "trailWidth": 1.0,    // width of the cleared track
     "trailEdge": 1.0,     // meniscus highlight along the track edges
     "layers": 2,          // 1..3 size classes of runners
     "size": 1.0,          // runner size (multiplier)
-    "grow": 0.3,          // how much a runner grows as it sweeps drops
+    "grow": 0.7,          // how much a runner grows with every drop it picks up
     "startAbove": true,   // runners enter from above the top edge (false: they can start mid-pane)
     "turn": 0.35          // 0..1 how much a runner head turns to follow its path
   },
@@ -47,7 +47,8 @@ var defaults = {
   },
 
   "optics": {
-    "lensZoom": 7.0,      // field of view of the drop lens (inverted image)
+    "lensZoom": 7.0,      // field of view of the drop lens, scaled by drop size
+    "field": 0.06,        // extra field of view (screen heights) that even tiny drops show
     "curvature": 0.85,    // how domed the drops are
     "refraction": 1.0,    // overall refraction strength
     "sharpness": 0.5,     // 0 = drops show the blurred scene, 1 = sharp scene
@@ -57,7 +58,7 @@ var defaults = {
     "contrast": 1.0,      // contrast of the lens image inside drops
     "highlight": 0.8,     // hard specular and bright arc
     "sheen": 1.0,         // soft broad sheen
-    "shadow": 0.35,       // shadow cast onto the pane
+    "shadow": 0.5,        // shadow cast onto the pane
     "light": [-0.45, -0.7, 0.75],
     "reflection": 0.25,   // sky/room reflection amount
     "reflectionColor": [0.85, 0.9, 1.0]
@@ -67,9 +68,9 @@ var defaults = {
     "radius": 26,         // lens blur radius in px (1080p logical)
     "blades": 0,          // 0 = round aperture, 5..9 = polygon bokeh
     "rotation": 0.3,      // aperture rotation, radians
-    "highlightBoost": 3.5,// bright points bloom into discs
+    "highlightBoost": 4.0,// bright points bloom into discs
     "ring": 0.6,          // bright-rimmed bokeh discs
-    "threshold": 0.5,     // luminance where bloom starts
+    "threshold": 0.35,    // luminance where bloom starts
     "fogSpread": 1.6      // condensation blur width
   },
 
