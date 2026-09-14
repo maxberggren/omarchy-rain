@@ -21,7 +21,7 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property string build: "35"
+  readonly property string build: "38"
   readonly property string home: Quickshell.env("HOME")
   readonly property string configPath: home + "/.config/omarchy/rain.json"
   readonly property string currentBackgroundLink: home + "/.local/state/omarchy/current/background"
@@ -45,9 +45,14 @@ Item {
   readonly property int focusedWindows: {
     var m = Hyprland.focusedMonitor;
     var ws = m ? m.activeWorkspace : null;
-    var tl = ws ? ws.toplevels : null;
+    if (!ws) return 0;
+    var ipc = ws.lastIpcObject;
+    if (ipc && ipc.windows !== undefined) return Number(ipc.windows) || 0;
+    var tl = ws.toplevels;
     return tl && tl.values ? tl.values.length : 0;
   }
+  // keep the workspace window counts fresh
+  Timer { interval: 2000; repeat: true; running: root.enabled; onTriggered: Hyprland.refreshWorkspaces() }
   readonly property real fps: focusedWindows > 0 ? coveredFps : fullFps
 
   Timer {

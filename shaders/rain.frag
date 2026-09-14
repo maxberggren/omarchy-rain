@@ -312,11 +312,12 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
         }
     }
     if (y > yStop) {
-        // arrived: the head melts into the sitting drop over a short moment
+        // arrived: the head keeps sliding into the body of the sitting drop
+        // while it melts into it, and the drop grows visibly
         float over = (y - yStop) / max(v, 1.0);
-        rn.merged = smoothstep(0.0, 0.5, over);
+        rn.merged = smoothstep(0.0, 1.2, over);
         rn.stopCell = stopCell;
-        y = yStop;
+        y = yStop + min(y - yStop, stopR * 0.9);
     }
     rn.y0 = y0;
     rn.widthVar = wvar;
@@ -331,7 +332,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
         if (hp < 0.45) picked += smoothstep(fi, fi + 0.25, nseg) * (0.5 + hp);
     }
     rn.r = rNow * pow(1.0 + rainGrow * 0.6 * picked, 0.4);
-    rn.stopVol = rn.r * rn.r * rn.r * rn.merged;
+    rn.stopVol = rn.r * rn.r * rn.r * rn.merged * 5.0;
     rn.v = v * (1.0 + 2.0 * accel * tau);
     rn.xc = xcBase;
     rn.head = vec2(rn.xc + pathX(y, col, layer, colW, rn.widthVar), y);
@@ -514,6 +515,7 @@ void main() {
     float sweepW = 1.0;
     float sweepHeadY = -1e5;
     float sweepV = 1.0;
+    float runUnder = 0.0;     // a merging head is drawn beneath the sitting drop it joins
     vec2 growCell = vec2(-1e5);   // big-drop cell that a runner merged into near this pixel
     float growVol = 0.0;
 
@@ -583,10 +585,11 @@ void main() {
                 float tailFade = (1.0 - smoothstep(0.08, 0.9, taper)) * (1.0 - rn.merged);
                 float tailDome = rn.shape.z * (1.0 - 0.9 * smoothstep(0.05, 0.8, taper));
                 addDrop(runAcc, dl, rx, rn.r * tailLen, rn.r * 1.05 / rn.shape.y, rn.shape.x, rn.col * 1.3, rn.r, 0.25 + 0.2 * dropMerge, lensZoom, tailDome, rn.spark, tailFade);
+                if (rn.merged > 0.0 && length(dh) < rn.r * 2.5) runUnder = max(runUnder, smoothstep(0.0, 0.3, rn.merged));
                 }
 
                 // pearling: the receding contact line leaves a chain of beads
-                if (p.y < rn.head.y + rn.r && p.y > rn.y0 - rn.r) {
+                if (rainTrail > 0.001 && p.y < rn.head.y + rn.r && p.y > rn.y0 - rn.r) {
                     float cs = rn.r * 0.55;
                     float cy = floor(p.y / cs);
                     float pathUp = rn.xc + pathX(p.y - cs, rn.col, fl, colW, rn.widthVar);
@@ -760,6 +763,7 @@ void main() {
         float bgLum = dot(col, vec3(0.2126, 0.7152, 0.0722));
         col *= 1.0 - shadow * 0.22 * outsideNear * shadowSide * clamp(runAcc.rNear / (10.0 * ps), 0.15, 1.0) * (0.3 + 0.7 * bgLum) * runAcc.fade;
         vec4 dr = shadeDrop(runAcc, uv, col, L, lxy, 1.0);
+        dr *= 1.0 - st.a * runUnder;
         col = col * (1.0 - dr.a) + dr.rgb;
         cov = dr.a;
     }

@@ -69,19 +69,19 @@ presets, edit config). Merge its keys into
 | Key | Default | What it does |
 |---|---|---|
 | `enabled` | `true` | draw the rain layer at all |
-| `fps` | `30` | animation rate cap; `0` freezes time |
-| `coveredFps` | `12` | rate while the focused workspace has windows; set equal to `fps` to disable |
-| `renderScale` | `1.0` | fraction of the screen's physical resolution; `0.5` is much cheaper |
+| `fps` | `24` | animation rate cap; `0` freezes time |
+| `coveredFps` | `10` | rate while the focused workspace has windows; set equal to `fps` to disable |
+| `renderScale` | `0.75` | fraction of the screen's physical resolution; `1.0` is native, `0.5` much cheaper |
 | `seed` | `0` | change to get a different pane |
 | `backgroundPath` | `""` | force an image instead of following the current wallpaper |
 | `screens` | `[]` | output names to draw on; empty means all |
 | **rain** | | sliding drops (runners) |
-| `rain.amount` | `0.45` | 0..1 share of the pane's columns that carry runners |
+| `rain.amount` | `0.9` | 0..1 share of the pane's columns that carry runners |
 | `rain.spawnRate` | `1.0` | how often a column starts a new runner |
 | `rain.speed` | `1.0` | fall speed multiplier |
 | `rain.stickSlip` | `0.55` | 0..1 pulsed, pinning motion |
 | `rain.wander` | `1.0` | lateral meander |
-| `rain.trail` | `0.12` | pearling bead density on the track |
+| `rain.trail` | `0.0` | pearling beads left on the track (0 = none) |
 | `rain.trailWidth` | `1.0` | width of the wiped track |
 | `rain.trailEdge` | `1.0` | meniscus glints along the track edges |
 | `rain.layers` | `2` | 1..3 size classes of runners |
@@ -90,13 +90,13 @@ presets, edit config). Merge its keys into
 | `rain.startAbove` | `true` | runners enter from above the top edge (`false`: they can start mid-pane) |
 | `rain.turn` | `0.35` | 0..1 how much a runner head turns to follow its path |
 | **drops** | | sessile (sitting) drops |
-| `drops.density` | `1.4` | count multiplier |
+| `drops.density` | `1.1` | count multiplier |
 | `drops.size` | `1.0` | size multiplier |
 | `drops.spawnRate` | `2.0` | how often new drops hit the pane |
 | `drops.irregularity` | `1.0` | gravity sag, outline wobble |
 | `drops.merge` | `1.0` | coalescence softness between touching drops |
 | `drops.layers` | `3` | 1..3 size classes |
-| `drops.fps` | `8` | refresh rate of the cached sitting-drop layer |
+| `drops.fps` | `5` | refresh rate of the cached sitting-drop layer |
 | **fog** | | condensation |
 | `fog.amount` | `0.45` | 0..1 how fogged the pane is (drops and tracks wipe it) |
 | `fog.grain` | `0.45` | micro-droplet texture |

@@ -4,20 +4,20 @@
 
 var defaults = {
   "enabled": true,
-  "fps": 30,              // animation rate cap for the sliding drops
-  "coveredFps": 12,       // rate while the focused workspace has windows (mostly covered)
-  "renderScale": 1.0,     // fraction of the screen's physical resolution; 0.5 = cheap
+  "fps": 24,              // animation rate cap for the sliding drops
+  "coveredFps": 10,       // rate while the focused workspace has windows (mostly covered)
+  "renderScale": 0.75,    // fraction of the screen's physical resolution; 1.0 = native, 0.5 = cheap
   "seed": 0,
   "backgroundPath": "",   // empty = follow omarchy's current background
   "screens": [],          // empty = all screens; else list of output names
 
   "rain": {
-    "amount": 0.45,       // 0..1 share of columns carrying sliding drops
+    "amount": 0.9,        // 0..1 share of columns carrying sliding drops
     "spawnRate": 1.0,     // how often a new runner starts (multiplier)
     "speed": 1.0,         // fall speed (multiplier)
     "stickSlip": 0.55,    // 0..1 pulsed, pinning motion
     "wander": 1.0,        // lateral meander (multiplier)
-    "trail": 0.12,        // pearling droplet density on the track
+    "trail": 0.0,         // pearling beads left on the track (0 = none)
     "trailWidth": 1.0,    // width of the cleared track
     "trailEdge": 1.0,     // meniscus highlight along the track edges
     "layers": 2,          // 1..3 size classes of runners
@@ -28,13 +28,13 @@ var defaults = {
   },
 
   "drops": {
-    "density": 1.4,       // sessile drop count (multiplier)
+    "density": 1.1,       // sessile drop count (multiplier)
     "size": 1.0,          // sessile drop size (multiplier)
     "spawnRate": 2.0,     // how often new drops hit the pane
     "irregularity": 1.0,  // gravity sag and outline wobble
     "merge": 1.0,         // coalescence softness between touching drops
     "layers": 3,          // 1..3 size classes
-    "fps": 8              // refresh rate of the cached sitting-drop layer
+    "fps": 5              // refresh rate of the cached sitting-drop layer
   },
 
   "fog": {

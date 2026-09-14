@@ -21,7 +21,7 @@ Item {
 
   // Render target size in physical pixels times renderScale.
   readonly property real dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
-  readonly property real renderScale: Math.max(0.25, Math.min(2.0, Number(cfg.renderScale) || 1.0))
+  readonly property real renderScale: Math.max(0.25, Math.min(2.0, Number(cfg.renderScale) || 0.75))
   readonly property int rw: Math.max(8, Math.round(width * dpr * renderScale))
   readonly property int rh: Math.max(8, Math.round(height * dpr * renderScale))
   readonly property real pxScale: (rh / 1080.0)
@@ -187,19 +187,19 @@ Item {
   QtObject {
     id: u
     readonly property real seed: view.num(view.cfg.seed, 0)
-    readonly property real rainAmount: view.num(view.cfg.rain.amount, 0.45)
+    readonly property real rainAmount: view.num(view.cfg.rain.amount, 0.9)
     readonly property real rainSpawn: view.num(view.cfg.rain.spawnRate, 1)
     readonly property real rainSpeed: view.num(view.cfg.rain.speed, 1)
     readonly property real rainStickSlip: view.num(view.cfg.rain.stickSlip, 0.55)
     readonly property real rainWander: view.num(view.cfg.rain.wander, 1)
-    readonly property real rainTrail: view.num(view.cfg.rain.trail, 0.12)
+    readonly property real rainTrail: view.num(view.cfg.rain.trail, 0)
     readonly property real rainTrailWidth: view.num(view.cfg.rain.trailWidth, 1)
     readonly property real rainLayers: view.num(view.cfg.rain.layers, 2)
     readonly property real rainSize: view.num(view.cfg.rain.size, 1)
     readonly property real rainGrow: view.num(view.cfg.rain.grow, 0.7)
     readonly property real rainStartAbove: view.cfg.rain.startAbove === false ? 0 : 1
     readonly property real rainTurn: view.num(view.cfg.rain.turn, 0.35)
-    readonly property real dropDensity: view.num(view.cfg.drops.density, 1.4)
+    readonly property real dropDensity: view.num(view.cfg.drops.density, 1.1)
     readonly property real dropSize: view.num(view.cfg.drops.size, 1)
     readonly property real dropSpawn: view.num(view.cfg.drops.spawnRate, 2)
     readonly property real dropIrregular: view.num(view.cfg.drops.irregularity, 1)
@@ -315,7 +315,7 @@ Item {
   // ----------------------------------------------------------- sessile
   // Sitting drops change slowly (impacts, growth, being swept), so they are
   // rendered into a cached texture at drops.fps instead of every frame.
-  readonly property real dropsFps: Math.max(0, Math.min(60, view.num(view.cfg.drops.fps, 8)))
+  readonly property real dropsFps: Math.max(0, Math.min(60, view.num(view.cfg.drops.fps, 5)))
   Timer {
     interval: view.dropsFps > 0 ? Math.round(1000 / view.dropsFps) : 1000
     repeat: true
