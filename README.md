@@ -150,11 +150,18 @@ use `"fps": 30` and/or `"renderScale": 0.5`, or `omarchy-shell rain preset cheap
 ## Development
 
 ```bash
-dev/preview-output.sh          # hidden headless Hyprland output for previews
-dev/shot.sh out "" 8,8.5       # render frames at t=8s and t=8.5s to out_t8.png ...
-dev/install-local.sh           # copy into ~/.config/omarchy/plugins and enable
+dev/preview-output.sh            # hidden headless Hyprland output for previews
+dev/shot.sh out "" 8,8.5         # render frames at t=8s and t=8.5s to out_t8.png ...
+RAIN_DEBUG=2 dev/shot.sh out ""  # show a stage: 1 sharp, 2 blur, 3 fog, 4 glass, 5 sitting drops
+dev/bench.sh cfg.json 5          # animate on the hidden output, report GPU busy and power
+dev/install-local.sh             # copy into ~/.config/omarchy/plugins and enable
 dev/install-local.sh --remove
+dev/preview-output.sh --remove   # drop the hidden output again
 ```
 
 `RainView.qml` is the reusable renderer; `RainBackground.qml` is the shell
-service that hosts it on every screen; `shaders/rain.frag` is the effect.
+service that hosts it on every screen. `shaders/rain.frag` is compiled twice:
+as is for the per-frame pass and with `-D SESSILE` for the cached
+sitting-drop pass. Service plugins are not hot-reloaded by the shell, so
+`omarchy restart shell` after installing a new build; `omarchy-shell rain status`
+reports the loaded `build`.
