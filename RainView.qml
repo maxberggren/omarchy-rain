@@ -241,7 +241,7 @@ Item {
   ShaderEffect {
     id: runnersFx
     width: 64
-    height: 36
+    height: 132
     visible: true
     property var sharpTex: sharpSrc
     property var blurTex: blurSrc
@@ -304,7 +304,7 @@ Item {
     id: runSrc
     sourceItem: runnersFx
     hideSource: true
-    textureSize: Qt.size(64, 36)
+    textureSize: Qt.size(64, 132)
     format: ShaderEffectSource.RGBA32F
     smooth: false
     mipmap: false

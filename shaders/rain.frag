@@ -84,7 +84,9 @@ layout(binding = 5) uniform sampler2D runTex;
 layout(binding = 6) uniform sampler2D sessTex;
 #endif
 #define RT_COLS 64.0
-#define RT_ROWS 36.0
+#define RT_ROWS 132.0
+#define RT_SLOT 22.0
+#define RT_NS 32.0
 
 #define PERIOD 600.0
 #define PI 3.14159265
@@ -347,8 +349,23 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
 #ifndef RUNNER_TABLE
 // Read a runner from the per-frame state table: 6 texels per (layer, cycle) slot.
 vec4 rtFetch(float col, float slot, float g) {
-    return texture(runTex, vec2((col + 0.5) / RT_COLS, (slot * 6.0 + g + 0.5) / RT_ROWS));
+    return texture(runTex, vec2((col + 0.5) / RT_COLS, (slot * RT_SLOT + g + 0.5) / RT_ROWS));
 }
+// Sampled curves along y (32 samples over -0.35H .. 1.15H), packed 4 per texel.
+float rtCurve(float col, float slot, float firstRow, float y) {
+    float fi = clamp((y / resolution.y + 0.35) / 1.5, 0.0, 1.0) * (RT_NS - 1.0);
+    float i0 = floor(fi);
+    float fr = fi - i0;
+    float i1 = min(i0 + 1.0, RT_NS - 1.0);
+    vec4 a = rtFetch(col, slot, firstRow + floor(i0 / 4.0));
+    vec4 b = rtFetch(col, slot, firstRow + floor(i1 / 4.0));
+    float k0 = mod(i0, 4.0), k1 = mod(i1, 4.0);
+    float va = k0 < 0.5 ? a.x : (k0 < 1.5 ? a.y : (k0 < 2.5 ? a.z : a.w));
+    float vb = k1 < 0.5 ? b.x : (k1 < 1.5 ? b.y : (k1 < 2.5 ? b.z : b.w));
+    return mix(va, vb, fr);
+}
+float rtPath(float col, float slot, float y) { return rtCurve(col, slot, 6.0, y); }
+float rtWidth(float col, float slot, float y) { return rtCurve(col, slot, 14.0, y); }
 // Cheap first look: alive, head y, radius, column centre. Only runners that
 // can reach this pixel are fetched in full.
 vec4 runnerPeek(float col, float layer, float cycle) {
@@ -466,8 +483,8 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
 void main() {
     float col = floor(qt_TexCoord0.x * RT_COLS);
     float row = floor(qt_TexCoord0.y * RT_ROWS);
-    float slot = floor(row / 6.0);
-    float g = row - slot * 6.0;
+    float slot = floor(row / RT_SLOT);
+    float g = row - slot * RT_SLOT;
     int l = int(floor(slot / 2.0));
     float c = slot - float(l) * 2.0;
     float fl = float(l);
@@ -493,7 +510,28 @@ void main() {
     else if (g < 2.5) fragColor = vec4(rn.widthVar, rn.dying, rn.born, rn.merged);
     else if (g < 3.5) fragColor = rn.shape;
     else if (g < 4.5) fragColor = vec4(rn.lean, rn.spark, rn.stopCell);
-    else fragColor = vec4(rn.stopVol, fl, colW, 0.0);
+    else if (g < 5.5) fragColor = vec4(rn.stopVol, fl, colW, 0.0);
+    else if (g < 13.5) {
+        // path x offset at 4 consecutive sample heights
+        float si = (g - 6.0) * 4.0;
+        vec4 o;
+        for (int k = 0; k < 4; k++) {
+            float ys = (mix(-0.35, 1.15, (si + float(k)) / (RT_NS - 1.0))) * resolution.y;
+            float v = rn.xc + pathX(ys, col, fl, colW, rn.widthVar);
+            if (k == 0) o.x = v; else if (k == 1) o.y = v; else if (k == 2) o.z = v; else o.w = v;
+        }
+        fragColor = o;
+    } else {
+        // track width modulation at 4 consecutive sample heights
+        float si = (g - 14.0) * 4.0;
+        vec4 o;
+        for (int k = 0; k < 4; k++) {
+            float ys = (mix(-0.35, 1.15, (si + float(k)) / (RT_NS - 1.0))) * resolution.y;
+            float v = vnoise(vec2(ys / (70.0 * ps), col * 3.0 + fl));
+            if (k == 0) o.x = v; else if (k == 1) o.y = v; else if (k == 2) o.z = v; else o.w = v;
+        }
+        fragColor = o;
+    }
 }
 #else
 void main() {
@@ -539,7 +577,8 @@ void main() {
                 if (abs(p.x - t0.w) > colW * 0.75 + t0.z * 4.0 + 80.0 * ps) continue;
                 Runner rn = runnerFetch(col, fl, float(c), colW, t0);
                 if (rn.dying > 0.999) continue;
-                float pathHere = rn.xc + pathX(p.y, rn.col, fl, colW, rn.widthVar);
+                float slotId = fl * 2.0 + float(c);
+                float pathHere = rtPath(col, slotId, p.y);
                 float dxp = p.x - pathHere;
                 float dyh = p.y - rn.head.y;
 #ifdef SESSILE
@@ -554,7 +593,7 @@ void main() {
 #else
                 if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
-                    float wn = vnoise(vec2(p.y / (70.0 * ps), rn.col * 3.0 + fl));
+                    float wn = rtWidth(col, slotId, p.y);
                     float wn2 = vnoise(vec2(p.y / (16.0 * ps), rn.col * 5.0 + fl + 3.0));
                     float tw = rn.tw * (0.8 + 0.3 * (wn - 0.5) * 2.0 + 0.12 * (wn2 - 0.5) * 2.0);
                     float age = (rn.head.y - p.y) / max(rn.v, 1.0);
@@ -574,7 +613,7 @@ void main() {
                 if (dyh < 1.8 * rn.r && dyh > -(rn.shape.w + 1.5) * rn.r) {
                 // head: oriented (partly) along its path, round advancing front,
                 // tail that narrows to the track width and flattens into the film
-                float slopeH = (pathX(rn.head.y + 8.0 * ps, rn.col, fl, colW, rn.widthVar) - pathX(rn.head.y - 16.0 * ps, rn.col, fl, colW, rn.widthVar)) / (24.0 * ps);
+                float slopeH = (rtPath(col, slotId, rn.head.y + 12.0 * ps) - rtPath(col, slotId, rn.head.y - 24.0 * ps)) / (36.0 * ps);
                 float turnAng = atan(slopeH * rainTurn) + rn.lean;
                 vec2 tdir = vec2(sin(turnAng), cos(turnAng));
                 vec2 dh = p - rn.head;
@@ -592,7 +631,7 @@ void main() {
                 if (rainTrail > 0.001 && p.y < rn.head.y + rn.r && p.y > rn.y0 - rn.r) {
                     float cs = rn.r * 0.55;
                     float cy = floor(p.y / cs);
-                    float pathUp = rn.xc + pathX(p.y - cs, rn.col, fl, colW, rn.widthVar);
+                    float pathUp = rtPath(col, slotId, p.y - cs);
                     float slope = (pathHere - pathUp) / cs;
                     for (int i2 = -1; i2 <= 1; i2++) {
                         float ci = cy + float(i2);
@@ -650,9 +689,8 @@ void main() {
                     if (abs(centre.x - sweepX) < reach) {
                         // seconds since the head's front touched the drop; the pull starts on contact
                         float tpass = (sweepHeadY + sweepW - (centre.y - rr)) / sweepV;
-                        float gone = smoothstep(0.0, 0.3, tpass);
-                        centre.x += (sweepX - centre.x) * gone * 0.85;
-                        centre.y += min(sweepHeadY - centre.y, rr * 1.5) * gone * 0.5;
+                        float gone = smoothstep(0.0, 0.22, tpass);
+                        centre.x += (sweepX - centre.x) * gone * 0.3;
                         exist *= 1.0 - gone;
                         rr *= 1.0 - gone;
                     }
