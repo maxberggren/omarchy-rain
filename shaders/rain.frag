@@ -231,10 +231,10 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     rn.y0 = y0;
     rn.widthVar = mix(0.6, 1.5, hc.w);
     // pickups: every so often the head swallows a sitting drop and jumps in size
-    float seg = 55.0 * pxScale;
+    float seg = 75.0 * pxScale;
     float nseg = (y - y0) / seg;
     float picked = 0.0;
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < 16; i++) {
         float fi = float(i);
         if (fi > nseg) break;
         float hp = hash11(fi * 3.7 + col * 11.3 + cycleK * 0.61 + layer * 5.0 + seed);
@@ -363,6 +363,21 @@ vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHe
     float ev = clamp((tl - 0.6 * T) / (0.4 * T), 0.0, 1.0);
     float evap = 1.0 - ev * ev;
     return vec4(centre, r * pop * grow * evap * exist, exist);
+}
+
+// Cheaper variant for neighbour checks: static position and base radius only.
+vec4 sessileBase(vec2 cc, float fl, float cs, float rMin, float rMax, float densHere) {
+    vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
+    if (hs.x > densHere) return vec4(0.0);
+    vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
+    float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
+    float T = PERIOD / ncyc;
+    float k = floor((time + hs.x * T * 5.0) / T);
+    vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
+    float a1 = 1.55;
+    float ratio = pow(rMin / rMax, a1);
+    float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
+    return vec4(centre, r, 1.0);
 }
 
 float layerCell(int l) { return (l == 0 ? 74.0 : (l == 1 ? 38.0 : 19.0)) * pxScale * dropSize; }
@@ -531,7 +546,7 @@ void main() {
                     for (int ny = -1; ny <= 1; ny++) for (int nx = -1; nx <= 1; nx++) {
                         if (nx == 0 && ny == 0) continue;
                         vec2 nc = cc + vec2(float(nx), float(ny));
-                        vec4 nb = sessileAt(nc, fl, cs, rMin, rMax, densHere);
+                        vec4 nb = sessileBase(nc, fl, cs, rMin, rMax, densHere);
                         if (nb.w <= 0.0 || nb.z < 0.6) continue;
                         float dist = length(nb.xy - centre);
                         float touch = smoothstep(0.95 * (rr + nb.z), 0.8 * (rr + nb.z), dist);
@@ -548,7 +563,7 @@ void main() {
                     float bcs = csL[bl];
                     vec2 bcell = floor(centre / bcs - 0.5);
                     for (int by = 0; by <= 1; by++) for (int bx = 0; bx <= 1; bx++) {
-                        vec4 big = sessileAt(bcell + vec2(float(bx), float(by)), float(bl), bcs, 1.3 * ps, bcs * 0.42, densL[bl]);
+                        vec4 big = sessileBase(bcell + vec2(float(bx), float(by)), float(bl), bcs, 1.3 * ps, bcs * 0.42, densL[bl]);
                         if (big.w <= 0.0 || big.z < 0.6) continue;
                         float dist = length(big.xy - centre);
                         absorbed = max(absorbed, smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist));

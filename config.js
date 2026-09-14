@@ -33,7 +33,7 @@ var defaults = {
     "irregularity": 1.0,  // gravity sag and outline wobble
     "merge": 1.0,         // coalescence softness between touching drops
     "layers": 3,          // 1..3 size classes
-    "fps": 12             // refresh rate of the cached sitting-drop layer
+    "fps": 8              // refresh rate of the cached sitting-drop layer
   },
 
   "fog": {

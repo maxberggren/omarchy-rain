@@ -238,7 +238,7 @@ Item {
   // ----------------------------------------------------------- sessile
   // Sitting drops change slowly (impacts, growth, being swept), so they are
   // rendered into a cached texture at drops.fps instead of every frame.
-  readonly property real dropsFps: Math.max(0, Math.min(60, view.num(view.cfg.drops.fps, 12)))
+  readonly property real dropsFps: Math.max(0, Math.min(60, view.num(view.cfg.drops.fps, 8)))
   Timer {
     interval: view.dropsFps > 0 ? Math.round(1000 / view.dropsFps) : 1000
     repeat: true
