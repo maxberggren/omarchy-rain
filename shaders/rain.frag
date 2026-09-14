@@ -325,7 +325,7 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
     vec3 hv = normalize(Lj + vec3(0.0, 0.0, 1.0));
     float hl = max(dot(n, hv), 0.0);
     float specPow = mix(90.0, 260.0, sizeK);
-    float specMask = smoothstep(6.0 * ps, 16.0 * ps, acc.rNear) * smoothstep(0.85, 1.05, acc.spark) * f;
+    float specMask = smoothstep(2.5 * ps, 9.0 * ps, acc.rNear) * smoothstep(0.62, 0.9, acc.spark) * f;
     float spec = pow(hl, specPow) * highlight * 1.1 * specMask;
 
     vec3 lightCol = vec3(0.95, 0.96, 1.0);
