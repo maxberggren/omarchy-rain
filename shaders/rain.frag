@@ -939,7 +939,7 @@ void main() {
     col = max(col, 0.0);
     // filmic curve (ACES fit) so highlights roll off and blacks are black
     vec3 x = col * 1.0;
-    vec3 curve = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14) * 1.12, 0.0, 1.0);
+    vec3 curve = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14) * 1.04, 0.0, 1.0);
     col = mix(clamp(col, 0.0, 1.0), curve, filmic);
     col = clamp((col - 0.42) * 1.2 + 0.42, 0.0, 1.0);
     fragColor = vec4(col, 1.0) * qt_Opacity;

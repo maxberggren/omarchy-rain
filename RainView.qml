@@ -229,9 +229,9 @@ Item {
     readonly property real scratches: view.num(view.cfg.glass.scratches, 0)
     readonly property real dust: view.num(view.cfg.glass.dust, 0.3)
     readonly property real vignette: view.num(view.cfg.glass.vignette, 0.35)
-    readonly property real brightness: view.num(view.cfg.post.brightness, 1)
+    readonly property real brightness: view.num(view.cfg.post.brightness, 0.93)
     readonly property real contrast: view.num(view.cfg.post.contrast, 1)
-    readonly property real saturation: view.num(view.cfg.post.saturation, 0.85)
+    readonly property real saturation: view.num(view.cfg.post.saturation, 0.72)
     readonly property real filmic: view.num(view.cfg.post.filmic, 0.8)
   }
 

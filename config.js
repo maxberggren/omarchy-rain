@@ -82,9 +82,9 @@ var defaults = {
   },
 
   "post": {
-    "brightness": 1.0,
+    "brightness": 0.93,
     "contrast": 1.0,
-    "saturation": 0.85,
+    "saturation": 0.72,
     "filmic": 0.8         // filmic (ACES) curve: real blacks, rolled-off highlights
   }
 };
