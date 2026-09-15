@@ -70,8 +70,8 @@ var defaults = {
     "blades": 0,          // 0 = round aperture, 5..9 = polygon bokeh
     "rotation": 0.3,      // aperture rotation, radians
     "highlightBoost": 6.0,// bright points bloom into discs
-    "ring": 0.7,          // bright-rimmed bokeh discs
-    "threshold": 0.65,    // luminance where bloom starts
+    "ring": 0.4,          // bright-rimmed bokeh discs
+    "threshold": 0.55,    // luminance where bloom starts
     "fogSpread": 1.6      // condensation blur width
   },
 

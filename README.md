@@ -126,8 +126,8 @@ presets, edit config). Merge its keys into
 | `blur.blades` | `0` | 0 = round aperture, 5..9 = polygonal bokeh |
 | `blur.rotation` | `0.3` | aperture rotation in radians |
 | `blur.highlightBoost` | `6.0` | bright points bloom into discs |
-| `blur.ring` | `0.7` | bright-rimmed bokeh discs |
-| `blur.threshold` | `0.65` | luminance where bloom starts |
+| `blur.ring` | `0.4` | bright-rimmed bokeh discs |
+| `blur.threshold` | `0.55` | luminance where bloom starts |
 | `blur.fogSpread` | `1.6` | condensation blur width |
 | **glass** | | |
 | `glass.scratches` | `0.0` | faint micro-scratches (off by default) |

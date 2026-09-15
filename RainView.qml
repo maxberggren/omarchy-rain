@@ -72,8 +72,8 @@ Item {
     property real blades: view.num(view.cfg.blur.blades, 0)
     property real rotation: view.num(view.cfg.blur.rotation, 0)
     property real boost: view.num(view.cfg.blur.highlightBoost, 6)
-    property real ring: view.num(view.cfg.blur.ring, 0.7)
-    property real threshold: view.num(view.cfg.blur.threshold, 0.65)
+    property real ring: view.num(view.cfg.blur.ring, 0.4)
+    property real threshold: view.num(view.cfg.blur.threshold, 0.55)
     fragmentShader: Qt.resolvedUrl("shaders/lensblur.frag.qsb")
     onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: lensblur shader failed:", log)
   }

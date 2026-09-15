@@ -425,7 +425,7 @@ vec3 sampleBg(vec2 uv, float sharpMix) {
 // the matching mip level or the interior aliases into moire.
 vec3 sampleLens(vec2 uv, float sharpMix, float mag) {
     vec3 b = texture(blurTex, uv).rgb;
-    float lod = max(0.0, log2(max(mag, 1.0)) + 1.0);
+    float lod = max(0.0, log2(max(mag, 1.0)) + 0.25);
     vec3 s = textureLod(sharpTex, uv, lod).rgb;
     return mix(b, s, sharpMix);
 }
@@ -487,8 +487,8 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
     float arcDir = max(dot(outward, -lxy), 0.0);
     float arc = pow(max(vpos, 0.0), 1.2) * smoothstep(0.55, 0.85, rad) * (1.0 - smoothstep(0.88, 0.98, rad)) * highlight * 0.9 * f;
     // neutral contact line, world-space width
-    float olw = max(1.2 * ps, 0.06 * acc.rNear);
-    float ol = 1.0 - outline * mix(0.4, 1.0, sizeK) * smoothstep(olw, 0.0, abs(acc.edge)) * 0.6 * f;
+    float olw = max(0.7 * ps, 0.06 * acc.rNear);
+    float ol = 1.0 - outline * mix(0.15, 1.0, sizeK) * smoothstep(olw, 0.0, abs(acc.edge)) * 0.55 * f;
     // reflections of the room on the lit side of the dome
     float fres = 0.02 + 0.98 * pow(steep, 5.0);
     // Fresnel reflection of the room: the scene mean, brighter toward the upper rim
@@ -942,6 +942,7 @@ void main() {
     vec3 curve = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14) * 1.04, 0.0, 1.0);
     col = mix(clamp(col, 0.0, 1.0), curve, filmic);
     col = clamp((col - 0.42) * 1.2 + 0.42, 0.0, 1.0);
+    col = col * 0.955 + 0.045;
     fragColor = vec4(col, 1.0) * qt_Opacity;
 #endif
 }
