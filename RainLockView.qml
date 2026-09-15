@@ -129,7 +129,10 @@ Item {
       width: root.fieldWidth
       height: root.fieldHeight
       anchors.centerIn: parent
-      color: Color.lock.background
+      // the theme's field colour is translucent; over moving rain a solid
+      // field reads better (lock.opaqueField in rain.json)
+      color: root.rainCfg.opaqueField === false ? Color.lock.background
+        : Qt.rgba(Color.lock.background.r, Color.lock.background.g, Color.lock.background.b, 1.0)
       borderSpec: root.inputBorderSpec
       radius: Style.cornerRadius
       clip: true

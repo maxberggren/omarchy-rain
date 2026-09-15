@@ -43,7 +43,7 @@ Item {
   readonly property bool authenticating: authenticatingPassword || fingerprintAuthenticating
 
   // ------------------------------------------------------------ rain
-  readonly property string build: "67"
+  readonly property string build: "68"
   readonly property string configPath: home + "/.config/omarchy/rain.json"
   property var userCfg: ({})
   property var cfg: Cfg.withDefaults({})

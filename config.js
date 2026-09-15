@@ -15,7 +15,8 @@ var defaults = {
     "fps": 30,
     "renderScale": 1.0,
     "blankAfter": 60,     // seconds idle before the display turns off (0 = never)
-    "warm": true          // keep a rendered rain view ready so locking shows rain instantly (uses memory)
+    "warm": true,         // keep a rendered rain view ready so locking shows rain instantly (uses memory)
+    "opaqueField": true   // solid password field instead of the theme's translucent one
   },
   "desktop": {            // always-on rain over the desktop wallpaper (costly)
     "enabled": false
