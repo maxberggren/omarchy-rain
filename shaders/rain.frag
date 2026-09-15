@@ -221,8 +221,9 @@ vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHe
     float grow = 0.85 + 0.15 * clamp(tl / (0.5 * T), 0.0, 1.0);
     // drops do not vanish in the rain; only a very slow shrink at the end of
     // a long life, so the pane slowly renews itself
-    float ev = clamp((tl - 0.6 * T) / (0.4 * T), 0.0, 1.0);
-    float evap = 1.0 - ev * ev;
+    // very slow shrink over the last three quarters of a long life, easing to
+    // a standstill, so it is never seen happening
+    float evap = 1.0 - smoothstep(0.25 * T, T, tl);
     return vec4(centre, r * pop * grow * evap * exist, tl);
 }
 
@@ -813,7 +814,7 @@ void main() {
                         if (touch <= 0.0) continue;
                         // the merge starts when the younger of the two landed:
                         // surfaces bridge at once, the smaller drains over ~1 s
-                        float m = smoothstep(0.3, 1.3, min(ageMe, nb.w));
+                        float m = smoothstep(0.3, 8.0, min(ageMe, nb.w));
                         neck = max(neck, touch * (1.0 - m));
                         // tie-break by cell hash so exactly one side wins
                         bool theyWin = nb.z > rr || (nb.z == rr && hash12(nc) > hash12(cc));
@@ -833,7 +834,7 @@ void main() {
                         float dist = length(big.xy - centre);
                         float touch = smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist);
                         if (touch <= 0.0) continue;
-                        float m = smoothstep(0.3, 1.3, min(ageMe, big.w));
+                        float m = smoothstep(0.3, 8.0, min(ageMe, big.w));
                         neck = max(neck, touch * (1.0 - m));
                         absorbed = max(absorbed, touch * m);
                     }
