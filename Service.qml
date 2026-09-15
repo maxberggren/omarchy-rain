@@ -43,7 +43,7 @@ Item {
   readonly property bool authenticating: authenticatingPassword || fingerprintAuthenticating
 
   // ------------------------------------------------------------ rain
-  readonly property string build: "66"
+  readonly property string build: "67"
   readonly property string configPath: home + "/.config/omarchy/rain.json"
   property var userCfg: ({})
   property var cfg: Cfg.withDefaults({})
@@ -100,6 +100,39 @@ Item {
     sourceSize: Qt.size(root.warmSize, root.warmSize)
   }
 
+  // A paused, fully rendered rain view kept alive in a 1 px hidden window so
+  // the lock screen can show rain on its very first frame: a frame of it is
+  // grabbed when a lock is requested and shown until the lock's own view is
+  // ready, which starts from the same frozen time, so the switch is seamless.
+  property url snapshotUrl: ""
+  readonly property bool warmEnabled: lockCfg.warm !== false
+  PanelWindow {
+    id: warmWindow
+    visible: root.warmEnabled && root.backgroundPath !== "" && !root.locked
+    implicitWidth: 1
+    implicitHeight: 1
+    color: "transparent"
+    exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.namespace: "omarchy-rain-warm"
+    WlrLayershell.layer: WlrLayer.Background
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    mask: Region {}
+    RainView {
+      id: warmRain
+      width: warmWindow.screen ? warmWindow.screen.width : 1920
+      height: warmWindow.screen ? warmWindow.screen.height : 1080
+      imageSource: root.fileUrlPlain(root.backgroundPath)
+      cfg: root.lockCfg
+      time: root.rainTime
+      paused: true
+    }
+  }
+  function grabWarmFrame() {
+    if (!root.warmEnabled || !warmRain.live) return
+    var dpr = warmWindow.screen ? warmWindow.screen.devicePixelRatio : 1
+    warmRain.grabToImage(function(result) { root.snapshotUrl = result.url }, Qt.size(Math.round(warmRain.width * dpr), Math.round(warmRain.height * dpr)))
+  }
+
   FileView {
     id: configFile
     path: root.configPath
@@ -151,7 +184,7 @@ Item {
 
     function presets(): string { return Object.keys(Cfg.presets).join("\n") }
     function status(): string {
-      return JSON.stringify({ build: root.build, locked: root.locked, preview: root.previewVisible, rainVisible: root.rainVisible, paused: root.rainPaused, fps: root.lockFps, desktop: !!(root.cfg.desktop && root.cfg.desktop.enabled), time: root.rainTime })
+      return JSON.stringify({ build: root.build, locked: root.locked, preview: root.previewVisible, rainVisible: root.rainVisible, paused: root.rainPaused, fps: root.lockFps, warm: warmRain.live, snapshot: String(root.snapshotUrl).length > 0, desktop: !!(root.cfg.desktop && root.cfg.desktop.enabled), time: root.rainTime })
     }
   }
 
@@ -250,6 +283,7 @@ Item {
     }
 
     resetAuthenticationState()
+    grabWarmFrame()
     lockRequested = true
     armBlankTimer()
     logEvent("lock-requested")
@@ -391,6 +425,7 @@ Item {
         rainCfg: root.lockCfg
         rainTime: root.rainTime
         rainPaused: root.rainPaused || !root.rainVisible
+        snapshotSource: root.snapshotUrl
         backgroundPath: root.backgroundPath
         backgroundVersion: root.backgroundVersion
         fingerprintConfigured: root.fingerprintConfigured
@@ -424,6 +459,7 @@ Item {
       rainCfg: root.lockCfg
       rainTime: root.rainTime
       rainPaused: root.rainPaused
+      snapshotSource: root.snapshotUrl
       backgroundPath: root.backgroundPath
       backgroundVersion: root.backgroundVersion
       fingerprintConfigured: root.fingerprintConfigured
@@ -669,6 +705,7 @@ Item {
     function preview(): string {
       root.refreshBackground()
       root.refreshFingerprintStatus()
+      root.grabWarmFrame()
       root.previewVisible = true
       return "ok"
     }

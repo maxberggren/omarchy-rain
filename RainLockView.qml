@@ -21,6 +21,8 @@ Item {
   property var rainCfg: ({})
   property real rainTime: 0
   property bool rainPaused: false
+  // frame grabbed from the always-warm rain view; shown until the live one is ready
+  property url snapshotSource: ""
 
   readonly property string placeholderText: "Enter Password"
   readonly property int fieldWidth: 381
@@ -102,6 +104,17 @@ Item {
       cfg: root.rainCfg
       time: root.rainTime
       paused: root.rainPaused
+    }
+    Image {
+      id: snapshot
+      anchors.fill: parent
+      source: root.snapshotSource
+      fillMode: Image.Stretch
+      cache: false
+      asynchronous: false
+      opacity: rain.live ? 0 : 1
+      visible: opacity > 0
+      Behavior on opacity { NumberAnimation { duration: 250 } }
     }
 
     MouseArea {

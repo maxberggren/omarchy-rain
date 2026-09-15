@@ -34,6 +34,8 @@ Item {
   function vec3(a, d) { return (Array.isArray(a) && a.length >= 3) ? Qt.vector3d(num(a[0], d[0]), num(a[1], d[1]), num(a[2], d[2])) : Qt.vector3d(d[0], d[1], d[2]); }
 
   readonly property bool ready: img.status === Image.Ready
+  // true once every static pass has rendered and the rain is on screen
+  readonly property bool live: ready && staticRevision > 0
   // Decode large wallpapers down to roughly the render size; the max-side
   // square keeps portrait and landscape sources covering. Capped so the warm
   // copy the lock service keeps stays small. Must match RainView.decodeSizeFor.
