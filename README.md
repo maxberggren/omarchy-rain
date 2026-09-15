@@ -134,9 +134,9 @@ presets, edit config). Merge its keys into
 | `glass.dust` | `0.3` | specks on the pane |
 | `glass.vignette` | `0.35` | |
 | **post** | | |
-| `post.brightness` | `0.93` | |
+| `post.brightness` | `0.98` | |
 | `post.contrast` | `1.0` | |
-| `post.saturation` | `0.72` | |
+| `post.saturation` | `0.6` | |
 | `post.filmic` | `0.8` | filmic (ACES) curve: real blacks, rolled-off highlights |
 
 ## Performance
