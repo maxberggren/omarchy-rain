@@ -43,7 +43,7 @@ Item {
   readonly property bool authenticating: authenticatingPassword || fingerprintAuthenticating
 
   // ------------------------------------------------------------ rain
-  readonly property string build: "65"
+  readonly property string build: "66"
   readonly property string configPath: home + "/.config/omarchy/rain.json"
   property var userCfg: ({})
   property var cfg: Cfg.withDefaults({})
@@ -77,6 +77,27 @@ Item {
 
   function persistConfig() {
     configFile.setText(JSON.stringify(userCfg, null, 2) + "\n")
+  }
+
+  // Keep the wallpaper decoded at exactly the size the lock view will ask
+  // for, so locking shows the rain at once instead of a theme-coloured pane
+  // while a large PNG decodes.
+  function fileUrlPlain(path) {
+    if (!path) return ""
+    return "file://" + String(path).split("/").map(encodeURIComponent).join("/")
+  }
+  readonly property var warmScreen: Quickshell.screens && Quickshell.screens.length ? Quickshell.screens[0] : null
+  readonly property real warmScale: Math.max(0.25, Math.min(2.0, Number(lockCfg.renderScale) || 1.0))
+  readonly property int warmSize: warmScreen
+    ? Math.min(3072, Math.round(Math.max(warmScreen.width * warmScreen.devicePixelRatio * warmScale, warmScreen.height * warmScreen.devicePixelRatio * warmScale) * 1.25))
+    : 0
+  Image {
+    id: warmWallpaper
+    visible: false
+    asynchronous: true
+    cache: true
+    source: root.backgroundPath && root.warmSize > 0 ? root.fileUrlPlain(root.backgroundPath) : ""
+    sourceSize: Qt.size(root.warmSize, root.warmSize)
   }
 
   FileView {

@@ -13,6 +13,9 @@ import "config.js" as Cfg
 Item {
   id: view
 
+  // Shared decode-size rule so a pre-warmed pixmap hits the cache.
+  function decodeSizeFor(rw, rh) { return Math.min(3072, Math.round(Math.max(rw, rh) * 1.25)); }
+
   property url imageSource
   property var cfg: Cfg.withDefaults({})
   property real time: 0
@@ -31,6 +34,10 @@ Item {
   function vec3(a, d) { return (Array.isArray(a) && a.length >= 3) ? Qt.vector3d(num(a[0], d[0]), num(a[1], d[1]), num(a[2], d[2])) : Qt.vector3d(d[0], d[1], d[2]); }
 
   readonly property bool ready: img.status === Image.Ready
+  // Decode large wallpapers down to roughly the render size; the max-side
+  // square keeps portrait and landscape sources covering. Capped so the warm
+  // copy the lock service keeps stays small. Must match RainView.decodeSizeFor.
+  readonly property int decodeSize: view.decodeSizeFor(rw, rh)
 
   // Drop table geometry: one cell per sitting-drop grid cell per size class,
   // plus a one-cell margin on every side; four texels per cell.
@@ -50,13 +57,12 @@ Item {
     source: view.imageSource
     fillMode: Image.PreserveAspectCrop
     asynchronous: true
-    cache: false
+    // cached so a copy kept warm by the service makes the lock screen instant
+    cache: true
     smooth: true
     mipmap: false
     visible: true
-    // Decode large wallpapers down to roughly the render size to save VRAM;
-    // the max-side square keeps portrait and landscape sources covering.
-    sourceSize: Qt.size(Math.round(Math.max(view.rw, view.rh) * 1.25), Math.round(Math.max(view.rw, view.rh) * 1.25))
+    sourceSize: Qt.size(view.decodeSize, view.decodeSize)
   }
   ShaderEffectSource {
     id: sharpSrc
@@ -179,7 +185,7 @@ Item {
   property int staticRevision: 0
   Timer {
     id: staticChain
-    interval: 40
+    interval: 16
     repeat: true
     running: false
     onRunningChanged: if (running) view.staticStep = 0
