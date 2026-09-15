@@ -38,11 +38,11 @@ var defaults = {
   },
 
   "fog": {
-    "amount": 0.45,       // 0..1 condensation on the glass
-    "grain": 0.45,        // micro-droplet texture of the condensation
+    "amount": 0.4,        // 0..1 condensation on the glass
+    "grain": 0.9,         // micro-droplet texture of the condensation
     "regrow": 2.0,        // how fast a wiped track fogs up again
     "halo": 0.6,          // dry ring around drops
-    "lift": 0.6,          // how milky/bright the condensation is
+    "lift": 0.3,          // how milky/bright the condensation is
     "tint": [0.85, 0.88, 0.94],
     "tintStrength": 0.25
   },
@@ -52,12 +52,12 @@ var defaults = {
     "field": 0.06,        // extra field of view (screen heights) that even tiny drops show
     "curvature": 0.65,    // how domed the drops are (flat caps on glass)
     "refraction": 1.0,    // overall refraction strength
-    "sharpness": 0.5,     // 0 = drops show the blurred scene, 1 = sharp scene
-    "rimDark": 0.35,      // dark cap on the lit side of the dome
-    "outline": 0.45,      // contact-line darkness
-    "brighten": 0.12,     // light gathered by the drop lens
-    "contrast": 1.0,      // contrast of the lens image inside drops
-    "highlight": 0.8,     // hard specular and bright arc
+    "sharpness": 0.85,     // 0 = drops show the blurred scene, 1 = sharp scene
+    "rimDark": 0.5,       // dark cap on the lit side of the dome
+    "outline": 0.7,       // contact-line darkness
+    "brighten": 0.2,      // light gathered by the drop lens
+    "contrast": 1.15,     // contrast of the lens image inside drops
+    "highlight": 1.0,     // hard specular and bright arc
     "sheen": 1.0,         // soft broad sheen
     "shadow": 0.2,        // shadow cast onto the pane
     "light": [-0.45, -0.7, 0.75],
@@ -69,9 +69,9 @@ var defaults = {
     "radius": 26,         // lens blur radius in px (1080p logical)
     "blades": 0,          // 0 = round aperture, 5..9 = polygon bokeh
     "rotation": 0.3,      // aperture rotation, radians
-    "highlightBoost": 4.0,// bright points bloom into discs
-    "ring": 0.6,          // bright-rimmed bokeh discs
-    "threshold": 0.35,    // luminance where bloom starts
+    "highlightBoost": 6.0,// bright points bloom into discs
+    "ring": 0.7,          // bright-rimmed bokeh discs
+    "threshold": 0.3,     // luminance where bloom starts
     "fogSpread": 1.6      // condensation blur width
   },
 
@@ -84,8 +84,8 @@ var defaults = {
   "post": {
     "brightness": 1.0,
     "contrast": 1.0,
-    "saturation": 0.8,
-    "filmic": 0.35        // gentle S-curve so blacks and highlights breathe
+    "saturation": 0.95,
+    "filmic": 0.8         // filmic (ACES) curve: real blacks, rolled-off highlights
   }
 };
 

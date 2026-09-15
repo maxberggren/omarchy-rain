@@ -71,9 +71,9 @@ Item {
     property real radius: view.num(view.cfg.blur.radius, 26) * view.pxScale
     property real blades: view.num(view.cfg.blur.blades, 0)
     property real rotation: view.num(view.cfg.blur.rotation, 0)
-    property real boost: view.num(view.cfg.blur.highlightBoost, 4)
-    property real ring: view.num(view.cfg.blur.ring, 0.6)
-    property real threshold: view.num(view.cfg.blur.threshold, 0.35)
+    property real boost: view.num(view.cfg.blur.highlightBoost, 6)
+    property real ring: view.num(view.cfg.blur.ring, 0.7)
+    property real threshold: view.num(view.cfg.blur.threshold, 0.3)
     fragmentShader: Qt.resolvedUrl("shaders/lensblur.frag.qsb")
     onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: lensblur shader failed:", log)
   }
@@ -205,24 +205,24 @@ Item {
     readonly property real dropIrregular: view.num(view.cfg.drops.irregularity, 1)
     readonly property real dropMerge: view.num(view.cfg.drops.merge, 1)
     readonly property real dropLayers: view.num(view.cfg.drops.layers, 3)
-    readonly property real fogAmount: view.num(view.cfg.fog.amount, 0.45)
-    readonly property real fogGrain: view.num(view.cfg.fog.grain, 0.45)
+    readonly property real fogAmount: view.num(view.cfg.fog.amount, 0.4)
+    readonly property real fogGrain: view.num(view.cfg.fog.grain, 0.9)
     readonly property real fogRegrow: view.num(view.cfg.fog.regrow, 2.0)
     readonly property real fogHalo: view.num(view.cfg.fog.halo, 0.6)
-    readonly property real fogLift: view.num(view.cfg.fog.lift, 0.6)
+    readonly property real fogLift: view.num(view.cfg.fog.lift, 0.3)
     readonly property vector4d fogTint: { var t = view.vec3(view.cfg.fog.tint, [0.85, 0.88, 0.94]); return Qt.vector4d(t.x, t.y, t.z, view.num(view.cfg.fog.tintStrength, 0.25)); }
     readonly property real lensZoom: view.num(view.cfg.optics.lensZoom, 7)
     readonly property real lensField: view.num(view.cfg.optics.field, 0.06)
     readonly property real curvature: view.num(view.cfg.optics.curvature, 0.65)
     readonly property real refraction: view.num(view.cfg.optics.refraction, 1)
-    readonly property real dropSharp: view.num(view.cfg.optics.sharpness, 0.5)
-    readonly property real rimDark: view.num(view.cfg.optics.rimDark, 0.35)
-    readonly property real outline: view.num(view.cfg.optics.outline, 0.45)
-    readonly property real highlight: view.num(view.cfg.optics.highlight, 0.8)
+    readonly property real dropSharp: view.num(view.cfg.optics.sharpness, 0.85)
+    readonly property real rimDark: view.num(view.cfg.optics.rimDark, 0.5)
+    readonly property real outline: view.num(view.cfg.optics.outline, 0.7)
+    readonly property real highlight: view.num(view.cfg.optics.highlight, 1.0)
     readonly property real sheen: view.num(view.cfg.optics.sheen, 1)
     readonly property real shadow: view.num(view.cfg.optics.shadow, 0.2)
-    readonly property real brighten: view.num(view.cfg.optics.brighten, 0.12)
-    readonly property real dropContrast: view.num(view.cfg.optics.contrast, 1.0)
+    readonly property real brighten: view.num(view.cfg.optics.brighten, 0.2)
+    readonly property real dropContrast: view.num(view.cfg.optics.contrast, 1.15)
     readonly property real trailEdge: view.num(view.cfg.rain.trailEdge, 1)
     readonly property vector4d lightDir: { var l = view.vec3(view.cfg.optics.light, [-0.45, -0.7, 0.75]); return Qt.vector4d(l.x, l.y, l.z, view.num(view.cfg.optics.reflection, 0.25)); }
     readonly property vector4d reflectColor: { var c = view.vec3(view.cfg.optics.reflectionColor, [0.85, 0.9, 1.0]); return Qt.vector4d(c.x, c.y, c.z, view.num(view.cfg.optics.reflection, 0.25)); }
@@ -231,8 +231,8 @@ Item {
     readonly property real vignette: view.num(view.cfg.glass.vignette, 0.25)
     readonly property real brightness: view.num(view.cfg.post.brightness, 1)
     readonly property real contrast: view.num(view.cfg.post.contrast, 1)
-    readonly property real saturation: view.num(view.cfg.post.saturation, 0.8)
-    readonly property real filmic: view.num(view.cfg.post.filmic, 0.35)
+    readonly property real saturation: view.num(view.cfg.post.saturation, 0.95)
+    readonly property real filmic: view.num(view.cfg.post.filmic, 0.8)
   }
 
   // ----------------------------------------------------------- runners

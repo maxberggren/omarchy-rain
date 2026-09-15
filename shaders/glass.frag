@@ -18,6 +18,7 @@ layout(std140, binding = 0) uniform buf {
     float dust;
 };
 
+vec4 hash42(vec2 p) { vec4 p4 = fract(vec4(p.xyxy) * vec4(0.1031, 0.1030, 0.0973, 0.1099)); p4 += dot(p4, p4.wzxy + 33.33); return fract((p4.xxyz + p4.yzzw) * p4.zywx); }
 float hash12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 vec3  hash32(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); p3 += dot(p3, p3.yxz + 33.33); return fract((p3.xxy + p3.yzz) * p3.zyx); }
 float vnoise(vec2 p) {
@@ -31,30 +32,42 @@ void main() {
     vec2 p = qt_TexCoord0 * resolution;
     float ps = pxScale;
 
-    // condensation grain: two octaves of value noise as a height field
-    vec2 gp = p / (1.8 * ps);
-    float e = 0.9;
-    float n1 = vnoise(gp + seed);
-    float n2 = vnoise(gp * 0.42 + 13.1 + seed);
-    vec2 gn = vec2(vnoise(gp + vec2(e, 0.0) + seed) - n1, vnoise(gp + vec2(0.0, e) + seed) - n1) * 2.0
-            + vec2(vnoise(gp * 0.42 + vec2(e, 0.0) + 13.1 + seed) - n2, vnoise(gp * 0.42 + vec2(0.0, e) + 13.1 + seed) - n2) * 1.2;
+    // condensation = dropwise: a dense stipple of micro-beads (two size
+    // classes), each a tiny dome. Their outward slope is stored as the grain
+    // normal so the rain pass can refract and light them like real beads.
+    vec2 gn = vec2(0.0);
+    float bead = 0.0;
+    for (int s2 = 0; s2 < 2; s2++) {
+        float gc = (s2 == 0 ? 3.2 : 6.6) * ps;
+        vec2 gp = p / gc;
+        vec2 gi = floor(gp - 0.5);
+        for (int y = 0; y <= 1; y++) for (int x = 0; x <= 1; x++) {
+            vec2 c2 = gi + vec2(float(x), float(y));
+            vec4 hb = hash42(c2 * 0.71 + seed * 3.0 + float(s2) * 17.0);
+            if (hb.w > (s2 == 0 ? 0.9 : 0.55)) continue;
+            vec2 cen = (c2 + 0.5 + (hb.xy - 0.5) * 0.9) * gc;
+            float r = gc * mix(0.22, 0.46, hb.z * hb.z);
+            vec2 d = (p - cen) / r;
+            float q = dot(d, d);
+            if (q < 1.0) {
+                float h = sqrt(1.0 - q);
+                gn += d * (1.0 - h * 0.4);
+                bead = max(bead, h);
+            }
+        }
+    }
     // condensation density: patches, plus vertical streaks where old runs dried
     float patches = 0.45 + 0.7 * vnoise(p / (260.0 * ps) + seed * 7.0) + 0.25 * vnoise(p / (90.0 * ps) + 3.0 + seed);
     float streaks = vnoise(vec2(p.x / (28.0 * ps), p.y / (520.0 * ps)) + seed * 11.0);
     patches *= 0.7 + 0.6 * smoothstep(0.25, 0.75, streaks);
-    // micro-droplet highlight pings: a dense stipple of 1 px glints
+    // each micro-bead throws a pinprick highlight toward the light
     float gspec = 0.0;
-    for (int s2 = 0; s2 < 2; s2++) {
-        float gc = (s2 == 0 ? 3.0 : 5.5) * ps;
-        vec2 sc = floor(p / gc);
-        vec3 hsp = hash32(sc * 0.61 + seed * 5.0 + float(s2) * 3.0);
-        if (hsp.x < 0.3) {
-            vec2 scen = (sc + hsp.yz) * gc;
-            float dd = length(p - scen);
-            gspec = max(gspec, (1.0 - smoothstep(0.25 * ps, 0.9 * ps, dd)) * (0.3 + 0.7 * hsp.x / 0.3));
-        }
+    {
+        vec3 Lg = normalize(vec3(-0.45, -0.7, 0.75));
+        vec3 hv = normalize(Lg + vec3(0.0, 0.0, 1.0));
+        vec3 nb = normalize(vec3(-gn * 1.4, 1.0));
+        gspec = pow(max(dot(nb, hv), 0.0), 60.0) * smoothstep(0.05, 0.4, bead);
     }
-
     // micro-scratches: sparse short segments in three directions
     float scr = 0.0;
     if (scratches > 0.001) {

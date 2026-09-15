@@ -419,6 +419,14 @@ vec3 sampleBg(vec2 uv, float sharpMix) {
     vec3 s = textureLod(sharpTex, uv, lod).rgb;
     return mix(b, s, sharpMix);
 }
+// Lens image: the drop minifies the scene by `mag` texels per pixel, so read
+// the matching mip level or the interior aliases into moire.
+vec3 sampleLens(vec2 uv, float sharpMix, float mag) {
+    vec3 b = texture(blurTex, uv).rgb;
+    float lod = max(0.0, log2(max(mag, 1.0)));
+    vec3 s = textureLod(sharpTex, uv, lod).rgb;
+    return mix(b, s, sharpMix);
+}
 
 vec3 fogColor(vec2 uv) {
     vec3 f = texture(fogTex, uv).rgb;
@@ -449,25 +457,26 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
     // drops cannot resolve an image, so they carry more of the blurred scene.
     vec2 lensOff = acc.lens * refraction;
     vec2 dropUv = mirrorUv(uv + lensOff / resolution);
-    vec3 inside = sampleBg(dropUv, dropSharp * mix(0.3, 1.0, sizeK) * f);
+    // minification of the scene inside this drop (texels per pixel)
+    float mag = curvature * (lensZoom + lensField * resolution.y / max(acc.rNear, 1.0)) * refraction;
+    vec3 inside = sampleLens(dropUv, dropSharp * mix(0.4, 1.0, sizeK) * f, mag);
     inside = (inside - 0.5) * mix(1.0, dropContrast, f) + 0.5;
     inside *= 1.0 + (brighten + 0.2 * runner) * f;
-    // Fresnel loss and the wide field of view make a real drop a little
-    // darker than the pane, more so toward the rim
-    inside *= mix(1.0, 0.85 * (1.0 - 0.3 * smoothstep(0.55, 1.0, rad)), f);
+    // Fresnel loss makes the interior a touch darker than the pane toward the rim
+    inside *= mix(1.0, 0.92 * (1.0 - 0.25 * smoothstep(0.6, 1.0, rad)), f);
     float inLum = dot(inside, vec3(0.2126, 0.7152, 0.0722));
-    inside = mix(vec3(inLum), inside, 0.7);
+    inside = mix(vec3(inLum), inside, 0.9);
 
     // dark cap: a crescent over the top ~30% of the radius on the lit side,
     // where grazing refraction and TIR remove the transmitted light
-    float capMask = smoothstep(0.5, 0.98, rad) * pow(litSide, 1.3);
+    float capMask = smoothstep(0.55, 0.98, rad) * pow(litSide, 1.2);
     float rim = 1.0 - rimDark * (1.0 - 0.5 * runner) * mix(0.5, 1.0, sizeK) * capMask * f;
     // bright arc: a whitish crescent along the far rim
     float arcDir = max(dot(outward, -lxy), 0.0);
-    float arc = pow(arcDir, 2.0) * smoothstep(0.62, 0.97, rad) * (1.0 - smoothstep(0.985, 1.0, rad)) * highlight * 0.7 * f;
+    float arc = pow(arcDir, 1.6) * smoothstep(0.66, 0.96, rad) * (1.0 - smoothstep(0.985, 1.0, rad)) * highlight * 1.0 * f;
     // neutral contact line, world-space width
-    float olw = max(1.2 * ps, 0.035 * acc.rNear);
-    float ol = 1.0 - outline * mix(0.3, 1.0, sizeK) * smoothstep(olw, 0.0, abs(acc.edge)) * 0.5 * f;
+    float olw = max(1.2 * ps, 0.06 * acc.rNear);
+    float ol = 1.0 - outline * mix(0.4, 1.0, sizeK) * smoothstep(olw, 0.0, abs(acc.edge)) * 0.6 * f;
     // reflections of the room on the lit side of the dome
     float fres = 0.02 + 0.98 * pow(steep, 5.0);
     vec3 reflScene = texture(blurTex, mirrorUv(uv + outward * 0.15 * steep)).rgb;
@@ -477,12 +486,12 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
     vec3 Lj = normalize(vec3(L.x * cos(ang) - L.y * sin(ang), L.x * sin(ang) + L.y * cos(ang), L.z));
     vec3 hv = normalize(Lj + vec3(0.0, 0.0, 1.0));
     float hl = max(dot(n, hv), 0.0);
-    float specPow = mix(90.0, 260.0, sizeK);
-    float specMask = smoothstep(2.5 * ps, 9.0 * ps, acc.rNear) * smoothstep(0.62, 0.9, acc.spark) * f;
-    float spec = pow(hl, specPow) * highlight * 1.1 * specMask;
+    float specPow = mix(90.0, 320.0, sizeK);
+    float specMask = smoothstep(2.0 * ps, 7.0 * ps, acc.rNear) * smoothstep(0.55, 0.85, acc.spark) * f;
+    float spec = pow(hl, specPow) * highlight * 1.6 * specMask;
 
     vec3 lightCol = vec3(0.95, 0.96, 1.0);
-    vec3 dcol = inside * rim * ol + refl + spec * lightCol + arc * (inside * 0.9 + lightCol * 0.45);
+    vec3 dcol = inside * rim * ol + refl + spec * lightCol + arc * (inside * 0.8 + lightCol * 0.6);
     // anti-aliased coverage; a fading tail also gets a soft, blurred edge
     float aa = mix(6.0 * ps, 1.8 * ps, f);
     float cov = smoothstep(aa, -aa, acc.edge) * mix(0.0, 1.0, f);
@@ -564,6 +573,8 @@ void main() {
     Acc runAcc; accInit(runAcc);
     float trailClear = 0.0;   // 0..1 condensation wiped by a runner track
     float trailMen = 0.0;     // meniscus glints along track edges
+    float trailNx = 0.0;      // signed cross-section slope of the wet film here
+    float trailH = 0.0;       // film height 0..1 across the track
     // up to three runners can be sweeping this pixel's neighbourhood at once
     // (their evaluation bands overlap); each is a (col, slot, r, headY, v, born, stopCell)
     vec4 swA = vec4(0.0), swB = vec4(0.0), swC = vec4(0.0);   // col, slot, r, headY
@@ -639,7 +650,12 @@ void main() {
                     // the fog regrows inward from the sides as the track ages
                     float shrink = tw * (1.0 - 0.5 * regrow);
                     float band = smoothstep(shrink + 1.5 * ps, shrink - 1.5 * ps, abs(dx));
-                    trailClear = max(trailClear, band * fresh);
+                    if (band * fresh > trailClear) {
+                        trailClear = band * fresh;
+                        float u = clamp(dx / max(shrink, 1.0), -1.0, 1.0);
+                        trailH = sqrt(max(0.0, 1.0 - u * u));
+                        trailNx = -u * (1.0 - 0.5 * trailH);
+                    }
                     // meniscus glints: short segments along the wet edge
                     float men = (1.0 - smoothstep(0.0, 2.5 * ps, abs(abs(dx) - shrink))) * fresh * (0.6 + 0.4 * wn2);
                     trailMen = max(trailMen, men);
@@ -845,17 +861,23 @@ void main() {
     // a wet track scatters a little even when the condensation is gone
     fogLocal *= (1.0 - trailClear * 0.85);
     fogLocal = clamp(fogLocal, 0.0, 1.0);
-    // micro-droplets are lit from the light side: a stipple of bright and dark flanks
-    float gl = dot(gn, lxy) * 0.07;
+    // micro-beads are lit from the light side: bright flank toward the light,
+    // dark flank away, exactly like the big drops in miniature
+    float gl = dot(gn, lxy) * 0.35 - length(gn) * 0.08;
 
     // ------------------------------------------------------------- base
-    vec2 bgUv = uv + gn * 2.5 * ps / resolution * fogLocal;
-    vec3 clear = sampleBg(bgUv, 0.0);
+    vec2 bgUv = uv + gn * 4.0 * ps / resolution * fogLocal;
+    // a wet track is a thin lens of water: it displaces the scene sideways and
+    // is sharper than the fogged pane around it
+    bgUv.x += trailNx * 5.0 * ps / resolution.x * trailClear;
+    vec3 clear = sampleBg(bgUv, 0.35 * trailClear);
     vec3 fogged = fogColor(bgUv) * (1.0 + gl);
     vec3 col = mix(clear, fogged, fogLocal);
-    col += glassAdd * 0.06 * fogLocal * fogGrain;
-    // meniscus: refract the pane slightly along the wet edge instead of painting a line
-    col = mix(col, sampleBg(bgUv + vec2(0.0, 2.0 * ps / resolution.y), 0.0) * 1.06, trailMen * trailEdge * 0.6);
+    col += glassAdd * 0.1 * fogLocal * fogGrain;
+    // glossy rim of the film: bright on the side facing the light, dark opposite
+    float filmSide = trailNx * lxy.x;
+    float filmRim = pow(1.0 - trailH, 2.0) * trailClear * trailEdge;
+    col *= 1.0 + filmRim * (0.45 * max(filmSide, 0.0) - 0.2 * max(-filmSide, 0.0)) * 2.0;
 
     // --------------------------------------------------- sessile layer
     vec4 st = texture(sessTex, uv);
@@ -883,9 +905,11 @@ void main() {
     float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
     col = mix(vec3(lum), col, saturation);
     col = (col - 0.5) * contrast + 0.5 + (brightness - 1.0);
-    col = clamp(col, 0.0, 1.0);
-    vec3 curve = col * col * (3.0 - 2.0 * col);
-    col = mix(col, curve, filmic);
+    col = max(col, 0.0);
+    // filmic curve (ACES fit) so highlights roll off and blacks are black
+    vec3 x = col * 1.15;
+    vec3 curve = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+    col = mix(clamp(col, 0.0, 1.0), curve, filmic);
     fragColor = vec4(col, 1.0) * qt_Opacity;
 #endif
 }
