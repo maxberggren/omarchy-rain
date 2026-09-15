@@ -57,6 +57,35 @@ built. If you edit a `.frag`, rebuild with `dev/build-shaders.sh`
 
 Remove with `omarchy plugin remove maxberggren.rain`.
 
+## What the settings look like
+
+Presets, applied with `omarchy-shell rain preset <name>`:
+
+| `default` | `drizzle` | `downpour` |
+|---|---|---|
+| ![default](docs/gallery/default.jpg) | ![drizzle](docs/gallery/drizzle.jpg) | ![downpour](docs/gallery/downpour.jpg) |
+
+| `foggy` | `dry` | `night` |
+|---|---|---|
+| ![foggy](docs/gallery/foggy.jpg) | ![dry](docs/gallery/dry.jpg) | ![night](docs/gallery/night.jpg) |
+
+A few of the knobs at their extremes:
+
+| `fog.amount` 0 | `fog.amount` 0.8 | `drops.density` 2.2 |
+|---|---|---|
+| ![fog none](docs/gallery/fog-none.jpg) | ![fog heavy](docs/gallery/fog-heavy.jpg) | ![dense drops](docs/gallery/drops-density-high.jpg) |
+
+| `blur.radius` 0 | `blur.blades` 6, `blur.highlightBoost` 10 | `optics.lensZoom` 14 |
+|---|---|---|
+| ![no blur](docs/gallery/blur-none.jpg) | ![bokeh blades](docs/gallery/blur-blades.jpg) | ![wide lens](docs/gallery/lens-wide.jpg) |
+
+| `rain.trailWidth` 2 | `drops.irregularity` 0 | `post.saturation` 0.15 |
+|---|---|---|
+| ![wide tracks](docs/gallery/rain-trailwidth-wide.jpg) | ![perfect ovals](docs/gallery/drops-irregular-none.jpg) | ![mono](docs/gallery/tone-mono.jpg) |
+
+Every preset and every setting at low and high values is in
+[docs/GALLERY.md](docs/GALLERY.md). Regenerate with `dev/gallery.sh`.
+
 ## Configure
 
 Everything lives in `~/.config/omarchy/rain.json`. The file is optional,
