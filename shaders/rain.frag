@@ -221,7 +221,7 @@ vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHe
     // a long life, so the pane slowly renews itself
     float ev = clamp((tl - 0.6 * T) / (0.4 * T), 0.0, 1.0);
     float evap = 1.0 - ev * ev;
-    return vec4(centre, r * pop * grow * evap * exist, exist);
+    return vec4(centre, r * pop * grow * evap * exist, tl);
 }
 
 // Cheaper variant for neighbour checks: static position and base radius only.
@@ -231,12 +231,13 @@ vec4 sessileBase(vec2 cc, float fl, float cs, float rMin, float rMax, float dens
     vec2 centre = (cc + 0.5 + (hs.yz - 0.5) * 0.9) * cs;
     float ncyc = max(floor(mix(0.6, 1.8, hs.w) * clamp(dropSpawn, 0.02, 10.0)), 1.0);
     float T = PERIOD / ncyc;
+    float tl = mod(time + hs.x * T * 5.0, T);
     float k = floor((time + hs.x * T * 5.0) / T);
     vec3 hk = hash32(cc * 0.71 + vec2(k * 0.13 + fl, seed));
     float a1 = 1.55;
     float ratio = pow(rMin / rMax, a1);
     float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
-    return vec4(centre, r, 1.0);
+    return vec4(centre, r, tl);
 }
 
 float layerCell(int l) { return (l == 0 ? 74.0 : (l == 1 ? 38.0 : 19.0)) * pxScale * dropSize; }
@@ -307,7 +308,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
             vec2 cen = (cc + 0.5) * cs0;
             float dh = dens0 * layerCluster(0, cen, cs0);
             vec4 nb = sessileBase(cc, 0.0, cs0, 1.9 * pxScale, cs0 * 0.36, dh);
-            if (nb.w <= 0.0 || nb.z < rNow * 1.15) continue;
+            if (nb.z <= 0.0 || nb.z < rNow * 1.15) continue;
             float px = xcBase + pathX(nb.y, col, layer, colW, wvar);
             if (abs(px - nb.x) > nb.z + rNow * 0.7) continue;
             float ys = nb.y - nb.z * 0.5;
@@ -698,10 +699,12 @@ void main() {
                 // density is decided per cell so every pass agrees on which drops exist
                 float densCell = densHere * layerCluster(l, (cc + 0.5) * cs, cs);
                 vec4 me = sessileAt(cc, fl, cs, rMin, rMax, densCell);
-                if (me.w <= 0.0) continue;
+                if (me.z <= 0.0) continue;
                 vec2 centre = me.xy;
-                float exist = me.w;
+                float exist = 1.0;
                 float rr = me.z;
+                float ageMe = me.w;
+                float neck = 0.0;   // extra fillet while a merge is under way
                 // a runner swallows every drop its head touches on the way down:
                 // the drop is pulled into the head and shrinks away over ~0.4 s
                 if (sweep > 0.001 && !(l == 0 && cc == sweepStop)) {
@@ -743,14 +746,18 @@ void main() {
                         if (nx == 0 && ny == 0) continue;
                         vec2 nc = cc + vec2(float(nx), float(ny));
                         vec4 nb = sessileBase(nc, fl, cs, rMin, rMax, densHere * layerCluster(l, (nc + 0.5) * cs, cs));
-                        if (nb.w <= 0.0 || nb.z < 0.6) continue;
+                        if (nb.z < 0.6) continue;
                         float dist = length(nb.xy - centre);
                         float touch = smoothstep(0.95 * (rr + nb.z), 0.8 * (rr + nb.z), dist);
                         if (touch <= 0.0) continue;
+                        // the merge starts when the younger of the two landed:
+                        // surfaces bridge at once, the smaller drains over ~1 s
+                        float m = smoothstep(0.3, 1.3, min(ageMe, nb.w));
+                        neck = max(neck, touch * (1.0 - m));
                         // tie-break by cell hash so exactly one side wins
                         bool theyWin = nb.z > rr || (nb.z == rr && hash12(nc) > hash12(cc));
-                        if (theyWin) absorbed = max(absorbed, touch);
-                        else vol += nb.z * nb.z * nb.z * touch;
+                        if (theyWin) absorbed = max(absorbed, touch * m);
+                        else vol += nb.z * nb.z * nb.z * touch * m;
                     }
                 }
                 // smaller layers are swallowed by any bigger-layer drop they touch
@@ -761,9 +768,13 @@ void main() {
                     for (int by = 0; by <= 1; by++) for (int bx = 0; bx <= 1; bx++) {
                         vec2 bcc = bcell + vec2(float(bx), float(by));
                         vec4 big = sessileBase(bcc, float(bl), bcs, 1.9 * ps, bcs * 0.36, densL[bl] * layerCluster(bl, (bcc + 0.5) * bcs, bcs));
-                        if (big.w <= 0.0 || big.z < 0.6) continue;
+                        if (big.z < 0.6) continue;
                         float dist = length(big.xy - centre);
-                        absorbed = max(absorbed, smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist));
+                        float touch = smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist);
+                        if (touch <= 0.0) continue;
+                        float m = smoothstep(0.3, 1.3, min(ageMe, big.w));
+                        neck = max(neck, touch * (1.0 - m));
+                        absorbed = max(absorbed, touch * m);
                     }
                 }
                 rr = pow(vol, 1.0 / 3.0) * (1.0 - absorbed);
@@ -778,7 +789,7 @@ void main() {
                 float ryUp = rr * (0.94 - 0.04 * sag);
                 float ryDown = rr * (1.12 + 0.18 * sag);
                 float wob = 0.06 * dropIrregular * (0.4 + 0.6 * hk.z);
-                addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
+                addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge + 0.8 * neck, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
             }
         }
     }
