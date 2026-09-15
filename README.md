@@ -1,5 +1,7 @@
 # Rain on Glass for Omarchy
 
+![Rain on the lock screen](docs/screenshot.jpg)
+
 A lock screen with live rain on your wallpaper behind the password field.
 It is Omarchy's own lock screen (the password and fingerprint flows are
 unchanged) with the blurred wallpaper replaced by animated rain, so it costs
