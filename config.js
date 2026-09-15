@@ -38,11 +38,11 @@ var defaults = {
   },
 
   "fog": {
-    "amount": 0.4,        // 0..1 condensation on the glass
+    "amount": 0.3,        // 0..1 condensation on the glass
     "grain": 0.9,         // micro-droplet texture of the condensation
     "regrow": 2.0,        // how fast a wiped track fogs up again
     "halo": 0.6,          // dry ring around drops
-    "lift": 0.2,          // how milky/bright the condensation is
+    "lift": 0.1,          // how milky/bright the condensation is
     "tint": [0.85, 0.88, 0.94],
     "tintStrength": 0.25
   },
@@ -53,7 +53,7 @@ var defaults = {
     "curvature": 0.65,    // how domed the drops are (flat caps on glass)
     "refraction": 1.0,    // overall refraction strength
     "sharpness": 0.85,     // 0 = drops show the blurred scene, 1 = sharp scene
-    "rimDark": 0.5,       // dark cap on the lit side of the dome
+    "rimDark": 0.7,       // dark cap on the lit side of the dome
     "outline": 0.7,       // contact-line darkness
     "brighten": 0.1,      // light gathered by the drop lens
     "contrast": 1.15,     // contrast of the lens image inside drops
@@ -61,7 +61,7 @@ var defaults = {
     "sheen": 1.0,         // soft broad sheen
     "shadow": 0.2,        // shadow cast onto the pane
     "light": [-0.45, -0.7, 0.75],
-    "reflection": 0.25,   // sky/room reflection amount
+    "reflection": 0.3,    // sky/room reflection amount
     "reflectionColor": [0.85, 0.9, 1.0]
   },
 
@@ -71,14 +71,14 @@ var defaults = {
     "rotation": 0.3,      // aperture rotation, radians
     "highlightBoost": 6.0,// bright points bloom into discs
     "ring": 0.7,          // bright-rimmed bokeh discs
-    "threshold": 0.3,     // luminance where bloom starts
+    "threshold": 0.65,    // luminance where bloom starts
     "fogSpread": 1.6      // condensation blur width
   },
 
   "glass": {
     "scratches": 0.0,     // faint micro-scratches (off: they read as lines on top of everything)
     "dust": 0.3,
-    "vignette": 0.25
+    "vignette": 0.35
   },
 
   "post": {

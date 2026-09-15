@@ -98,11 +98,11 @@ presets, edit config). Merge its keys into
 | `drops.layers` | `3` | 1..3 size classes |
 | `drops.fps` | `10` | refresh rate of the cached sitting-drop layer |
 | **fog** | | condensation |
-| `fog.amount` | `0.4` | 0..1 how fogged the pane is (drops and tracks wipe it) |
+| `fog.amount` | `0.3` | 0..1 how fogged the pane is (drops and tracks wipe it) |
 | `fog.grain` | `0.9` | micro-droplet texture |
 | `fog.regrow` | `2.0` | how fast a wiped track fogs up again |
 | `fog.halo` | `0.6` | dry ring around drops |
-| `fog.lift` | `0.2` | how milky/bright the condensation is |
+| `fog.lift` | `0.1` | how milky/bright the condensation is |
 | `fog.tint` | `[0.85,0.88,0.94]` | colour of the scattered light |
 | `fog.tintStrength` | `0.25` | |
 | **optics** | | drop shading |
@@ -111,7 +111,7 @@ presets, edit config). Merge its keys into
 | `optics.curvature` | `0.65` | how domed the drops are |
 | `optics.refraction` | `1.0` | overall refraction strength |
 | `optics.sharpness` | `0.85` | 0 = drops show the blurred scene, 1 = the sharp scene |
-| `optics.rimDark` | `0.5` | dark cap on the lit side of the dome |
+| `optics.rimDark` | `0.7` | dark cap on the lit side of the dome |
 | `optics.outline` | `0.7` | contact-line darkness |
 | `optics.brighten` | `0.1` | light gathered by the lens |
 | `optics.contrast` | `1.15` | contrast of the lens image inside drops |
@@ -119,7 +119,7 @@ presets, edit config). Merge its keys into
 | `optics.sheen` | `1.0` | soft broad sheen |
 | `optics.shadow` | `0.2` | shadow cast onto the pane |
 | `optics.light` | `[-0.45,-0.7,0.75]` | light direction (x right, y down, z toward viewer) |
-| `optics.reflection` | `0.25` | room/sky reflection amount |
+| `optics.reflection` | `0.3` | room/sky reflection amount |
 | `optics.reflectionColor` | `[0.85,0.9,1.0]` | |
 | **blur** | | lens blur of the wallpaper (computed once) |
 | `blur.radius` | `26` | radius in px at 1080p |
@@ -127,12 +127,12 @@ presets, edit config). Merge its keys into
 | `blur.rotation` | `0.3` | aperture rotation in radians |
 | `blur.highlightBoost` | `6.0` | bright points bloom into discs |
 | `blur.ring` | `0.7` | bright-rimmed bokeh discs |
-| `blur.threshold` | `0.3` | luminance where bloom starts |
+| `blur.threshold` | `0.65` | luminance where bloom starts |
 | `blur.fogSpread` | `1.6` | condensation blur width |
 | **glass** | | |
 | `glass.scratches` | `0.0` | faint micro-scratches (off by default) |
 | `glass.dust` | `0.3` | specks on the pane |
-| `glass.vignette` | `0.25` | |
+| `glass.vignette` | `0.35` | |
 | **post** | | |
 | `post.brightness` | `1.0` | |
 | `post.contrast` | `1.0` | |

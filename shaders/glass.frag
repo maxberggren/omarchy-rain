@@ -44,9 +44,9 @@ void main() {
         for (int y = 0; y <= 1; y++) for (int x = 0; x <= 1; x++) {
             vec2 c2 = gi + vec2(float(x), float(y));
             vec4 hb = hash42(c2 * 0.71 + seed * 3.0 + float(s2) * 17.0);
-            if (hb.w > (s2 == 0 ? 0.75 : 0.45)) continue;
+            if (hb.w > (s2 == 0 ? 0.45 : 0.3)) continue;
             vec2 cen = (c2 + 0.5 + (hb.xy - 0.5) * 0.9) * gc;
-            float r = gc * mix(0.22, 0.46, hb.z * hb.z);
+            float r = gc * mix(0.15, 0.5, hb.z * hb.z);
             vec2 d = (p - cen) / r;
             float q = dot(d, d);
             if (q < 1.0) {
