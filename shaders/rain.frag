@@ -789,8 +789,8 @@ void main() {
                         float tl2 = tpass - delay;
                         float reborn = 0.0;
                         if (tl2 > 0.0) {
-                            float tt = min(tl2 / 0.5, 1.0);
-                            reborn = tt < 0.2 ? smoothstep(0.0, 0.2, tt) * 1.15 : (1.0 + 0.15 * exp(-(tt - 0.2) * 6.0) * cos((tt - 0.2) * 34.0));
+                            // same splat as any landing
+                            reborn = smoothstep(0.0, 0.04, tl2) * (1.0 + 0.45 * exp(-max(tl2 - 0.04, 0.0) * 5.0) * cos(max(tl2 - 0.04, 0.0) * 22.0));
                         }
                         float keep = (1.0 - gone) + gone * reborn;
                         centre.x += (pathAtDrop - centre.x) * gone * (1.0 - min(reborn, 1.0)) * 0.3;
