@@ -24,7 +24,7 @@ var defaults = {
     "size": 1.0,          // runner size (multiplier)
     "grow": 0.7,          // how much a runner grows with every drop it picks up
     "startAbove": true,   // runners enter from above the top edge (false: they can start mid-pane)
-    "turn": 0.7           // 0..1 how much a runner head turns to follow its path
+    "turn": 1.0           // 0..1 how much a runner head turns to follow its path
   },
 
   "drops": {
