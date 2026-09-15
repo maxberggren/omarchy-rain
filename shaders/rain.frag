@@ -559,6 +559,7 @@ void main() {
     float sweepCol = 0.0;     // which runner (column, slot) is sweeping here
     float sweepSlot = 0.0;
     float sweepBorn = 0.0;
+    vec2 sweepStop = vec2(-1e5);  // the drop this runner merged into is never swept
     float runUnder = 0.0;     // a merging head is drawn beneath the sitting drop it joins
     vec2 growCell = vec2(-1e5);   // big-drop cell that a runner merged into near this pixel
     float growVol = 0.0;
@@ -596,13 +597,14 @@ void main() {
                 float dxp = p.x - pathHere;
                 float dyh = p.y - rn.head.y;
 #ifdef SESSILE
-                // sweep: everything the head touched is gone
-                if (p.y < rn.head.y && p.y > rn.y0 - rn.r) {
+                // sweep: everything the head touched is gone. Evaluated with a
+                // margin below the head so a drop straddling the head gets one verdict.
+                if (p.y < rn.head.y + 120.0 * ps && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
                     // any pixel that could belong to a drop the head touches
                     // the most recent runner through here decides; history is kept for 4 cycles
                     float sw = (abs(dx) < rn.r * 3.0 + 80.0 * ps ? 1.0 : 0.0) * (0.5 + 0.5 * (1.0 - rn.dying)) * (1.0 + 0.001 * rn.born);
-                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); sweepCol = col; sweepSlot = slotId; sweepBorn = rn.born; }
+                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); sweepCol = col; sweepSlot = slotId; sweepBorn = rn.born; sweepStop = rn.merged > 0.0 ? rn.stopCell : vec2(-1e5); }
                 }
                 if (rn.merged > 0.0 && rn.stopVol > growVol) { growCell = rn.stopCell; growVol = rn.stopVol; }
 #else
@@ -702,7 +704,7 @@ void main() {
                 float rr = me.z;
                 // a runner swallows every drop its head touches on the way down:
                 // the drop is pulled into the head and shrinks away over ~0.4 s
-                if (sweep > 0.001) {
+                if (sweep > 0.001 && !(l == 0 && cc == sweepStop)) {
                     float reach = sweepW * 1.05 + rr;
                     // the path at the drop's own height, so every pixel of the drop agrees
                     float pathAtDrop = rtPath(sweepCol, sweepSlot, centre.y);
