@@ -12,7 +12,7 @@ SCRATCH="${RAIN_SCRATCH:-/tmp/rain-preview-$USER}"
 CFGDIR="$SCRATCH/cfg"
 IMG="${RAIN_IMAGE:-$(readlink -f "$HOME/.local/state/omarchy/current/background")}"
 
-"$ROOT/dev/build-shaders.sh" >/dev/null
+[[ ${RAIN_NOBUILD:-0} == 1 ]] || "$ROOT/dev/build-shaders.sh" >/dev/null
 mkdir -p "$CFGDIR/shaders"
 cp "${RAIN_VIEW:-$ROOT/RainView.qml}" "$CFGDIR/RainView.qml"; cp "$ROOT/config.js" "$CFGDIR/"
 cp "$ROOT"/shaders/*.qsb "$ROOT"/dev/shaders/*.qsb "$CFGDIR/shaders/"

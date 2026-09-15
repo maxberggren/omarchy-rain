@@ -568,6 +568,7 @@ void main() {
     // (their evaluation bands overlap); each is a (col, slot, r, headY, v, born, stopCell)
     vec4 swA = vec4(0.0), swB = vec4(0.0), swC = vec4(0.0);   // col, slot, r, headY
     vec4 swA2 = vec4(-1e5), swB2 = vec4(-1e5), swC2 = vec4(-1e5); // v, born, stopCell.xy
+    float dA = 1e9, dB = 1e9, dC = 1e9;                        // distance of this pixel to each path
     float nSw = 0.0;
     float runUnder = 0.0;     // a merging head is drawn beneath the sitting drop it joins
     vec2 growCell = vec2(-1e5);   // big-drop cell that a runner merged into near this pixel
@@ -611,14 +612,15 @@ void main() {
                 if (p.y < rn.head.y + 120.0 * ps && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
                     // any pixel that could belong to a drop the head touches
-                    if (abs(dx) < rn.r * 3.0 + 80.0 * ps) {
+                    // keep the three runners whose path is nearest to this pixel
+                    float dd = abs(dx);
+                    if (dd < rn.r + 50.0 * ps) {
                         vec4 r1 = vec4(col, slotId, rn.r, rn.head.y);
                         vec4 r2 = vec4(max(rn.v, 1.0), rn.born, rn.merged > 0.0 ? rn.stopCell : vec2(-1e5));
-                        if (nSw < 0.5) { swA = r1; swA2 = r2; }
-                        else if (nSw < 1.5) { swB = r1; swB2 = r2; }
-                        else if (nSw < 2.5) { swC = r1; swC2 = r2; }
-                        else if (r2.y > swC2.y) { swC = r1; swC2 = r2; }   // keep the most recent
-                        nSw += 1.0;
+                        if (dd < dA) { swC = swB; swC2 = swB2; dC = dB; swB = swA; swB2 = swA2; dB = dA; swA = r1; swA2 = r2; dA = dd; }
+                        else if (dd < dB) { swC = swB; swC2 = swB2; dC = dB; swB = r1; swB2 = r2; dB = dd; }
+                        else if (dd < dC) { swC = r1; swC2 = r2; dC = dd; }
+                        nSw = min(nSw + 1.0, 3.0);
                     }
                 }
                 if (rn.merged > 0.0 && rn.stopVol > growVol) { growCell = rn.stopCell; growVol = rn.stopVol; }
