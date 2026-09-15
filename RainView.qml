@@ -32,6 +32,16 @@ Item {
 
   readonly property bool ready: img.status === Image.Ready
 
+  // Drop table geometry: one cell per sitting-drop grid cell per size class,
+  // plus a one-cell margin on every side; four texels per cell.
+  readonly property real dropSizeCfg: num(cfg.drops.size, 1)
+  function cellsX(l) { var cs = (l === 0 ? 74 : (l === 1 ? 38 : 19)) * pxScale * dropSizeCfg; return Math.ceil(rw / cs) + 3; }
+  function cellsY(l) { var cs = (l === 0 ? 74 : (l === 1 ? 38 : 19)) * pxScale * dropSizeCfg; return Math.ceil(rh / cs) + 3; }
+  readonly property vector4d tab0: Qt.vector4d(cellsX(0), cellsY(0), cellsX(1), cellsY(1))
+  readonly property int tableW: Math.max(cellsX(0), cellsX(1), cellsX(2))
+  readonly property int tableH: 4 * (cellsY(0) + cellsY(1) + cellsY(2))
+  readonly property vector4d tab1: Qt.vector4d(cellsX(2), cellsY(2), tableW, tableH)
+
   // ---------------------------------------------------------------- source
   Image {
     id: img
@@ -139,6 +149,29 @@ Item {
     visible: view.debug === 4
   }
 
+  // ------------------------------------------------------- cluster map
+  ShaderEffect {
+    id: clusterFx
+    width: Math.max(4, Math.round(view.rw / 8))
+    height: Math.max(4, Math.round(view.rh / 8))
+    visible: true
+    property vector2d resolution: Qt.vector2d(view.rw, view.rh)
+    property real pxScale: view.pxScale
+    property real seed: view.num(view.cfg.seed, 0)
+    property real dropSize: view.num(view.cfg.drops.size, 1)
+    fragmentShader: Qt.resolvedUrl("shaders/cluster.frag.qsb")
+    onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: cluster shader failed:", log)
+  }
+  ShaderEffectSource {
+    id: clusterSrc
+    sourceItem: clusterFx
+    hideSource: true
+    textureSize: Qt.size(clusterFx.width, clusterFx.height)
+    smooth: true
+    live: false
+    visible: false
+  }
+
   // The static passes are rendered on demand, in dependency order, one
   // frame apart so each reads a finished texture.
   function refreshStatic() { staticChain.restart() }
@@ -151,7 +184,7 @@ Item {
     running: false
     onRunningChanged: if (running) view.staticStep = 0
     onTriggered: {
-      if (view.staticStep === 0) { sharpSrc.scheduleUpdate(); glassSrc.scheduleUpdate() }
+      if (view.staticStep === 0) { sharpSrc.scheduleUpdate(); glassSrc.scheduleUpdate(); clusterSrc.scheduleUpdate() }
       else if (view.staticStep === 1) blurSrc.scheduleUpdate()
       else if (view.staticStep === 2) fogSrc.scheduleUpdate()
       else if (view.staticStep === 3) sessSrc.scheduleUpdate()
@@ -180,6 +213,11 @@ Item {
     function onSeedChanged() { if (view.ready) view.refreshStatic() }
     function onScratchesChanged() { if (view.ready) view.refreshStatic() }
     function onDustChanged() { if (view.ready) view.refreshStatic() }
+  }
+  Connections {
+    target: clusterFx
+    function onDropSizeChanged() { if (view.ready) view.refreshStatic() }
+    function onSeedChanged() { if (view.ready) view.refreshStatic() }
   }
 
   // -------------------------------------------------- shared uniforms
@@ -297,6 +335,8 @@ Item {
     property real contrast: u.contrast
     property real saturation: u.saturation
     property real filmic: u.filmic
+    property vector4d tab0: view.tab0
+    property vector4d tab1: view.tab1
     fragmentShader: Qt.resolvedUrl("shaders/runners.frag.qsb")
     onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: runner table shader failed:", log)
   }
@@ -312,26 +352,18 @@ Item {
     visible: false
   }
 
-  // ----------------------------------------------------------- sessile
-  // Sitting drops change slowly (impacts, growth, being swept), so they are
-  // rendered into a cached texture at drops.fps instead of every frame.
-  readonly property real dropsFps: Math.max(0, Math.min(60, view.num(view.cfg.drops.fps, 15)))
-  Timer {
-    interval: view.dropsFps > 0 ? Math.round(1000 / view.dropsFps) : 1000
-    repeat: true
-    running: view.ready && !view.paused && view.dropsFps > 0 && view.staticRevision > 0 && view.visible
-    onTriggered: sessSrc.scheduleUpdate()
-  }
+  // ------------------------------------------------------- drop table
+  // Every sitting drop's state (position, radius, landing wobble, coalescence,
+  // sweeps) is computed once per cell here; the cached pass only fetches it.
   ShaderEffect {
-    id: sessileFx
-    width: view.rw
-    height: view.rh
+    id: dropTableFx
+    width: view.tableW
+    height: view.tableH
     visible: true
     property var sharpTex: sharpSrc
     property var blurTex: blurSrc
     property var fogTex: fogSrc
     property var glassTex: glassSrc
-    property var runTex: runSrc
     property real time: view.time
     property vector2d resolution: Qt.vector2d(view.rw, view.rh)
     property real pxScale: view.pxScale
@@ -382,6 +414,98 @@ Item {
     property real contrast: u.contrast
     property real saturation: u.saturation
     property real filmic: u.filmic
+    property vector4d tab0: view.tab0
+    property vector4d tab1: view.tab1
+    property var runTex: runSrc
+    property var clusterTex: clusterSrc
+    fragmentShader: Qt.resolvedUrl("shaders/droptable.frag.qsb")
+    onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: drop table shader failed:", log)
+  }
+  ShaderEffectSource {
+    id: dropSrc
+    sourceItem: dropTableFx
+    hideSource: true
+    textureSize: Qt.size(view.tableW, view.tableH)
+    format: ShaderEffectSource.RGBA32F
+    smooth: false
+    mipmap: false
+    live: true
+    anchors.fill: parent
+    visible: view.debug === 6
+  }
+
+  // ----------------------------------------------------------- sessile
+  // Sitting drops change slowly (impacts, growth, being swept), so they are
+  // rendered into a cached texture at drops.fps instead of every frame.
+  readonly property real dropsFps: Math.max(0, Math.min(60, view.num(view.cfg.drops.fps, 15)))
+  Timer {
+    interval: view.dropsFps > 0 ? Math.round(1000 / view.dropsFps) : 1000
+    repeat: true
+    running: view.ready && !view.paused && view.dropsFps > 0 && view.staticRevision > 0 && view.visible
+    onTriggered: sessSrc.scheduleUpdate()
+  }
+  ShaderEffect {
+    id: sessileFx
+    width: view.rw
+    height: view.rh
+    visible: true
+    property var sharpTex: sharpSrc
+    property var blurTex: blurSrc
+    property var fogTex: fogSrc
+    property var glassTex: glassSrc
+    property real time: view.time
+    property vector2d resolution: Qt.vector2d(view.rw, view.rh)
+    property real pxScale: view.pxScale
+    property real seed: u.seed
+    property real rainAmount: u.rainAmount
+    property real rainSpawn: u.rainSpawn
+    property real rainSpeed: u.rainSpeed
+    property real rainStickSlip: u.rainStickSlip
+    property real rainWander: u.rainWander
+    property real rainTrail: u.rainTrail
+    property real rainTrailWidth: u.rainTrailWidth
+    property real rainLayers: u.rainLayers
+    property real rainSize: u.rainSize
+    property real rainGrow: u.rainGrow
+    property real rainStartAbove: u.rainStartAbove
+    property real rainTurn: u.rainTurn
+    property real dropDensity: u.dropDensity
+    property real dropSize: u.dropSize
+    property real dropSpawn: u.dropSpawn
+    property real dropIrregular: u.dropIrregular
+    property real dropMerge: u.dropMerge
+    property real dropLayers: u.dropLayers
+    property real fogAmount: u.fogAmount
+    property real fogGrain: u.fogGrain
+    property real fogRegrow: u.fogRegrow
+    property real fogHalo: u.fogHalo
+    property real fogLift: u.fogLift
+    property vector4d fogTint: u.fogTint
+    property real lensZoom: u.lensZoom
+    property real lensField: u.lensField
+    property real curvature: u.curvature
+    property real refraction: u.refraction
+    property real dropSharp: u.dropSharp
+    property real rimDark: u.rimDark
+    property real outline: u.outline
+    property real highlight: u.highlight
+    property real sheen: u.sheen
+    property real shadow: u.shadow
+    property real brighten: u.brighten
+    property real dropContrast: u.dropContrast
+    property real trailEdge: u.trailEdge
+    property vector4d lightDir: u.lightDir
+    property vector4d reflectColor: u.reflectColor
+    property real scratches: u.scratches
+    property real dust: u.dust
+    property real vignette: u.vignette
+    property real brightness: u.brightness
+    property real contrast: u.contrast
+    property real saturation: u.saturation
+    property real filmic: u.filmic
+    property vector4d tab0: view.tab0
+    property vector4d tab1: view.tab1
+    property var dropTex: dropSrc
     fragmentShader: Qt.resolvedUrl("shaders/sessile.frag.qsb")
     onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: sessile shader failed:", log)
   }
@@ -461,6 +585,8 @@ Item {
     property real contrast: u.contrast
     property real saturation: u.saturation
     property real filmic: u.filmic
+    property vector4d tab0: view.tab0
+    property vector4d tab1: view.tab1
     fragmentShader: Qt.resolvedUrl("shaders/rain.frag.qsb")
     onStatusChanged: if (status === ShaderEffect.Error) console.warn("rain: rain shader failed:", log)
   }

@@ -13,4 +13,6 @@ done
 [[ -s sessile.frag.qsb ]] && echo "built sessile.frag.qsb"
 # the runner state table is the same source with RUNNER_TABLE defined
 "$QSB" --qt6 -O -D RUNNER_TABLE -o runners.frag.qsb rain.frag 2>&1 | grep -v "^$" || true
+"$QSB" --qt6 -O -D DROP_TABLE -o droptable.frag.qsb rain.frag 2>&1 | grep -v "^$" || true
+[[ -s droptable.frag.qsb ]] && echo "built droptable.frag.qsb"
 [[ -s runners.frag.qsb ]] && echo "built runners.frag.qsb"

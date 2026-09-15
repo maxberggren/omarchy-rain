@@ -68,7 +68,7 @@ trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null' EXIT
 sleep 3
 IFS=',' read -ra TS <<< "$TIMES"
 for t in "${TS[@]}"; do
-  if [[ ${RAIN_ANIMATE:-0} == 1 ]]; then sleep 8; break; fi
+  if [[ ${RAIN_ANIMATE:-0} == 1 ]]; then sleep ${RAIN_BENCH_SECS:-14}; break; fi
   quickshell ipc -p "$CFGDIR/shell.qml" call preview setTime "$t" >/dev/null 2>&1 || true
   sleep 0.6
   grim -o rainpreview "${OUT}_t${t}.png"
