@@ -260,6 +260,18 @@ float pathX(float y, float col, float layer, float colW, float amp) {
     return rainWander * amp * colW * (0.17 * n + 0.05 * n2 + 0.03 * kink);
 }
 
+// The path exactly as the drop passes will see it: sampled at the table's
+// 32 heights and linearly interpolated, so head, track and sweep agree.
+float pathSampled(float y, float col, float layer, float colW, float amp) {
+    float fi = clamp((y / resolution.y + 0.35) / 1.5, 0.0, 1.0) * 31.0;
+    float i0 = floor(fi);
+    float fr = fi - i0;
+    float i1 = min(i0 + 1.0, 31.0);
+    float y0s = mix(-0.35, 1.15, i0 / 31.0) * resolution.y;
+    float y1s = mix(-0.35, 1.15, i1 / 31.0) * resolution.y;
+    return mix(pathX(y0s, col, layer, colW, amp), pathX(y1s, col, layer, colW, amp), fr);
+}
+
 Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, float T) {
     Runner rn;
     rn.alive = 0.0; rn.head = vec2(0.0); rn.y0 = 0.0; rn.r = rBase; rn.v = 1.0; rn.col = col; rn.xc = 0.0; rn.tw = 1.0; rn.born = 0.0; rn.widthVar = 1.0; rn.dying = 0.0; rn.layer = layer; rn.colW = colW;
@@ -309,7 +321,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
             float dh = dens0 * layerCluster(0, cen, cs0);
             vec4 nb = sessileBase(cc, 0.0, cs0, 1.9 * pxScale, cs0 * 0.36, dh);
             if (nb.z <= 0.0 || nb.z < rNow * 1.15) continue;
-            float px = xcBase + pathX(nb.y, col, layer, colW, wvar);
+            float px = xcBase + pathSampled(nb.y, col, layer, colW, wvar);
             if (abs(px - nb.x) > nb.z + rNow * 0.7) continue;
             float ys = nb.y - nb.z * 0.5;
             if (ys > y0 + rNow && ys < yStop) { yStop = ys; stopCell = cc; stopR = nb.z; }
@@ -339,7 +351,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     rn.stopVol = rn.r * rn.r * rn.r * rn.merged * 5.0;
     rn.v = v * (1.0 + 2.0 * accel * tau);
     rn.xc = xcBase;
-    rn.head = vec2(rn.xc + pathX(y, col, layer, colW, rn.widthVar), y);
+    rn.head = vec2(rn.xc + pathSampled(y, col, layer, colW, rn.widthVar), y);
     rn.tw = rn.r * 0.8 * rainTrailWidth * mix(0.8, 1.2, hc.w);
     rn.born = t0;
     // after the head is long gone the track re-fogs and the beads evaporate,
