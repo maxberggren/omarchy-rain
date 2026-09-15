@@ -1,7 +1,8 @@
 # Rain on glass: what actually happens, and how the shader fakes it
 
 This is the checklist the shader was built against. Every point comes from
-the five reference photos in `references/` plus the surface-physics of
+a set of reference photographs of rain on window panes (not included in the
+repository, their licences vary) plus the surface-physics of
 sessile and sliding drops (contact-angle hysteresis, capillary pinning,
 coalescence, and dropwise condensation).
 
