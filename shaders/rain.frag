@@ -761,13 +761,13 @@ void main() {
                 // landing: the drop hits, spreads wide and flat in ~40 ms, then
                 // surface tension pulls it back into a dome with a damped wobble
                 float landDome = 1.0;
+                // it slides a touch before it pins, and stays there
+                centre.y += me.z * 0.25 * (1.0 - exp(-ageMe * 5.0));
                 if (ageMe < 1.2) {
                     float ti = ageMe;
                     float spread = smoothstep(0.0, 0.04, ti) * (1.0 + 0.45 * exp(-max(ti - 0.04, 0.0) * 5.0) * cos(max(ti - 0.04, 0.0) * 22.0));
                     rr *= spread;
                     landDome = 0.3 + 0.7 * (1.0 - exp(-max(ti - 0.04, 0.0) * 6.0));
-                    // it slides a touch before it pins
-                    centre.y += rr * 0.25 * (1.0 - exp(-ti * 5.0));
                 }
                 // a runner swallows every drop its head runs over: the drop is
                 // pulled toward the head and shrinks away, and the cell stays dry
