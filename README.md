@@ -33,6 +33,16 @@ Enabling it replaces the built-in `omarchy.lock` (the shell records that in
 built-in lock screen back. Lock as usual (`omarchy-system-lock` or your
 keybinding); `omarchy-shell lock preview` shows the lock view without locking.
 
+Because this plugin is a lock-screen service, changing it while the shell
+runs is delicate: the shell hot-reloads every file change, and swapping lock
+services live can request a lock and has crashed the shell. Always restart
+the shell right after updating, disabling or removing it:
+
+```bash
+omarchy plugin update maxberggren.rain && omarchy restart shell
+omarchy plugin disable maxberggren.rain && omarchy restart shell
+```
+
 Or by hand:
 
 ```bash
