@@ -564,15 +564,11 @@ void main() {
     Acc runAcc; accInit(runAcc);
     float trailClear = 0.0;   // 0..1 condensation wiped by a runner track
     float trailMen = 0.0;     // meniscus glints along track edges
-    float sweep = 0.0;        // 0..1 sessile drops here were swallowed by a runner
-    float sweepX = -1e5;      // path x, head radius and head y of the strongest sweep here
-    float sweepW = 1.0;
-    float sweepHeadY = -1e5;
-    float sweepV = 1.0;
-    float sweepCol = 0.0;     // which runner (column, slot) is sweeping here
-    float sweepSlot = 0.0;
-    float sweepBorn = 0.0;
-    vec2 sweepStop = vec2(-1e5);  // the drop this runner merged into is never swept
+    // up to three runners can be sweeping this pixel's neighbourhood at once
+    // (their evaluation bands overlap); each is a (col, slot, r, headY, v, born, stopCell)
+    vec4 swA = vec4(0.0), swB = vec4(0.0), swC = vec4(0.0);   // col, slot, r, headY
+    vec4 swA2 = vec4(-1e5), swB2 = vec4(-1e5), swC2 = vec4(-1e5); // v, born, stopCell.xy
+    float nSw = 0.0;
     float runUnder = 0.0;     // a merging head is drawn beneath the sitting drop it joins
     vec2 growCell = vec2(-1e5);   // big-drop cell that a runner merged into near this pixel
     float growVol = 0.0;
@@ -615,11 +611,19 @@ void main() {
                 if (p.y < rn.head.y + 120.0 * ps && p.y > rn.y0 - rn.r) {
                     float dx = p.x - pathHere;
                     // any pixel that could belong to a drop the head touches
-                    // the most recent runner through here decides; history is kept for 4 cycles
-                    float sw = (abs(dx) < rn.r * 3.0 + 80.0 * ps ? 1.0 : 0.0) * (0.5 + 0.5 * (1.0 - rn.dying)) * (1.0 + 0.001 * rn.born);
-                    if (sw > sweep) { sweep = sw; sweepX = pathHere; sweepW = rn.r; sweepHeadY = rn.head.y; sweepV = max(rn.v, 1.0); sweepCol = col; sweepSlot = slotId; sweepBorn = rn.born; sweepStop = rn.merged > 0.0 ? rn.stopCell : vec2(-1e5); }
+                    if (abs(dx) < rn.r * 3.0 + 80.0 * ps) {
+                        vec4 r1 = vec4(col, slotId, rn.r, rn.head.y);
+                        vec4 r2 = vec4(max(rn.v, 1.0), rn.born, rn.merged > 0.0 ? rn.stopCell : vec2(-1e5));
+                        if (nSw < 0.5) { swA = r1; swA2 = r2; }
+                        else if (nSw < 1.5) { swB = r1; swB2 = r2; }
+                        else if (nSw < 2.5) { swC = r1; swC2 = r2; }
+                        else if (r2.y > swC2.y) { swC = r1; swC2 = r2; }   // keep the most recent
+                        nSw += 1.0;
+                    }
                 }
                 if (rn.merged > 0.0 && rn.stopVol > growVol) { growCell = rn.stopCell; growVol = rn.stopVol; }
+#endif
+#ifdef SESSILE
 #else
                 // only pixels that can lie inside the widest possible track do the track math
                 if (p.y < rn.head.y && p.y > rn.y0 - rn.r && abs(dxp) < rn.tw * 1.9 + 6.0 * ps) {
@@ -717,20 +721,23 @@ void main() {
                 float rr = me.z;
                 float ageMe = me.w;
                 float neck = 0.0;   // extra fillet while a merge is under way
-                // a runner swallows every drop its head touches on the way down:
-                // the drop is pulled into the head and shrinks away over ~0.4 s
-                if (sweep > 0.001 && !(l == 0 && cc == sweepStop)) {
-                    // the drop must be well under the head, not just grazed
-                    float reach = sweepW * 0.95 + rr * 0.7;
-                    // the path at the drop's own height, so every pixel of the drop agrees
-                    float pathAtDrop = rtPath(sweepCol, sweepSlot, centre.y);
-                    if (abs(centre.x - pathAtDrop) < reach) {
-                        // seconds since the head's front touched the drop; the pull starts on contact
-                        float tpass = (sweepHeadY + sweepW - (centre.y - rr)) / sweepV;
+                // a runner swallows every drop its head runs over: the drop is
+                // pulled toward the head and shrinks away, and the cell stays dry
+                // until rain lands a fresh drop there
+                if (nSw > 0.5) {
+                    float keepAll = 1.0;
+                    for (int si = 0; si < 3; si++) {
+                        if (float(si) >= nSw) break;
+                        vec4 r1 = si == 0 ? swA : (si == 1 ? swB : swC);
+                        vec4 r2 = si == 0 ? swA2 : (si == 1 ? swB2 : swC2);
+                        if (l == 0 && cc == r2.zw) continue;      // never the drop it merged into
+                        float reach = r1.z * 0.95 + rr * 0.7;
+                        float pathAtDrop = rtPath(r1.x, r1.y, centre.y);
+                        if (abs(centre.x - pathAtDrop) >= reach) continue;
+                        float tpass = (r1.w + r1.z - (centre.y - rr)) / r2.x;
+                        if (tpass <= 0.0) continue;
                         float gone = smoothstep(0.0, 0.22, tpass);
-                        // the cell stays dry until rain lands a fresh drop there,
-                        // 15..90 s later, with the usual splash
-                        float delay = mix(15.0, 90.0, hash12(cc * 0.37 + vec2(sweepBorn * 0.013, fl)));
+                        float delay = mix(15.0, 90.0, hash12(cc * 0.37 + vec2(r2.y * 0.013, fl)));
                         float tl2 = tpass - delay;
                         float reborn = 0.0;
                         if (tl2 > 0.0) {
@@ -739,9 +746,10 @@ void main() {
                         }
                         float keep = (1.0 - gone) + gone * reborn;
                         centre.x += (pathAtDrop - centre.x) * gone * (1.0 - min(reborn, 1.0)) * 0.3;
-                        exist *= min(keep, 1.0);
-                        rr *= keep;
+                        keepAll = min(keepAll, keep);
                     }
+                    exist *= min(keepAll, 1.0);
+                    rr *= keepAll;
                 }
                 if (rr < 0.6) continue;
                 vec2 d = p - centre;
