@@ -98,11 +98,11 @@ presets, edit config). Merge its keys into
 | `drops.layers` | `3` | 1..3 size classes |
 | `drops.fps` | `10` | refresh rate of the cached sitting-drop layer |
 | **fog** | | condensation |
-| `fog.amount` | `0.45` | 0..1 how fogged the pane is (drops and tracks wipe it) |
-| `fog.grain` | `0.45` | micro-droplet texture |
+| `fog.amount` | `0.4` | 0..1 how fogged the pane is (drops and tracks wipe it) |
+| `fog.grain` | `0.9` | micro-droplet texture |
 | `fog.regrow` | `2.0` | how fast a wiped track fogs up again |
 | `fog.halo` | `0.6` | dry ring around drops |
-| `fog.lift` | `0.6` | how milky/bright the condensation is |
+| `fog.lift` | `0.3` | how milky/bright the condensation is |
 | `fog.tint` | `[0.85,0.88,0.94]` | colour of the scattered light |
 | `fog.tintStrength` | `0.25` | |
 | **optics** | | drop shading |
@@ -110,12 +110,12 @@ presets, edit config). Merge its keys into
 | `optics.field` | `0.06` | extra field of view (in screen heights) that even tiny drops show |
 | `optics.curvature` | `0.65` | how domed the drops are |
 | `optics.refraction` | `1.0` | overall refraction strength |
-| `optics.sharpness` | `0.5` | 0 = drops show the blurred scene, 1 = the sharp scene |
-| `optics.rimDark` | `0.35` | dark cap on the lit side of the dome |
-| `optics.outline` | `0.45` | contact-line darkness |
-| `optics.brighten` | `0.12` | light gathered by the lens |
-| `optics.contrast` | `1.0` | contrast of the lens image inside drops |
-| `optics.highlight` | `0.8` | pinpoint highlight and bright arc |
+| `optics.sharpness` | `0.85` | 0 = drops show the blurred scene, 1 = the sharp scene |
+| `optics.rimDark` | `0.5` | dark cap on the lit side of the dome |
+| `optics.outline` | `0.7` | contact-line darkness |
+| `optics.brighten` | `0.2` | light gathered by the lens |
+| `optics.contrast` | `1.15` | contrast of the lens image inside drops |
+| `optics.highlight` | `1.0` | pinpoint highlight and bright arc |
 | `optics.sheen` | `1.0` | soft broad sheen |
 | `optics.shadow` | `0.2` | shadow cast onto the pane |
 | `optics.light` | `[-0.45,-0.7,0.75]` | light direction (x right, y down, z toward viewer) |
@@ -125,9 +125,9 @@ presets, edit config). Merge its keys into
 | `blur.radius` | `26` | radius in px at 1080p |
 | `blur.blades` | `0` | 0 = round aperture, 5..9 = polygonal bokeh |
 | `blur.rotation` | `0.3` | aperture rotation in radians |
-| `blur.highlightBoost` | `4.0` | bright points bloom into discs |
-| `blur.ring` | `0.6` | bright-rimmed bokeh discs |
-| `blur.threshold` | `0.35` | luminance where bloom starts |
+| `blur.highlightBoost` | `6.0` | bright points bloom into discs |
+| `blur.ring` | `0.7` | bright-rimmed bokeh discs |
+| `blur.threshold` | `0.3` | luminance where bloom starts |
 | `blur.fogSpread` | `1.6` | condensation blur width |
 | **glass** | | |
 | `glass.scratches` | `0.0` | faint micro-scratches (off by default) |
@@ -136,8 +136,8 @@ presets, edit config). Merge its keys into
 | **post** | | |
 | `post.brightness` | `1.0` | |
 | `post.contrast` | `1.0` | |
-| `post.saturation` | `0.8` | |
-| `post.filmic` | `0.35` | gentle S-curve |
+| `post.saturation` | `0.95` | |
+| `post.filmic` | `0.8` | filmic (ACES) curve: real blacks, rolled-off highlights |
 
 ## Performance
 
