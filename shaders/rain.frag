@@ -705,7 +705,8 @@ void main() {
                 // a runner swallows every drop its head touches on the way down:
                 // the drop is pulled into the head and shrinks away over ~0.4 s
                 if (sweep > 0.001 && !(l == 0 && cc == sweepStop)) {
-                    float reach = sweepW * 1.05 + rr;
+                    // the drop must be well under the head, not just grazed
+                    float reach = sweepW * 0.8 + rr * 0.5;
                     // the path at the drop's own height, so every pixel of the drop agrees
                     float pathAtDrop = rtPath(sweepCol, sweepSlot, centre.y);
                     if (abs(centre.x - pathAtDrop) < reach) {

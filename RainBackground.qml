@@ -21,7 +21,7 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property string build: "44"
+  readonly property string build: "45"
   readonly property string home: Quickshell.env("HOME")
   readonly property string configPath: home + "/.config/omarchy/rain.json"
   readonly property string currentBackgroundLink: home + "/.local/state/omarchy/current/background"
