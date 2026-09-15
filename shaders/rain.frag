@@ -241,7 +241,7 @@ vec4 sessileBase(vec2 cc, float fl, float cs, float rMin, float rMax, float dens
 }
 
 float layerCell(int l) { return (l == 0 ? 74.0 : (l == 1 ? 38.0 : 19.0)) * pxScale * dropSize; }
-float layerDens(int l) { return dropDensity * (l == 0 ? 0.5 : (l == 1 ? 0.62 : 0.9)); }
+float layerDens(int l) { return dropDensity * (l == 0 ? 0.6 : (l == 1 ? 0.7 : 0.55)); }
 float layerCluster(int l, vec2 p, float cs) {
     return 0.3 + 1.4 * vnoise(p / (cs * (l == 0 ? 4.8 : (l == 1 ? 9.0 : 18.0))) + vec2(seed * 3.0, 9.0));
 }
@@ -257,7 +257,7 @@ float pathX(float y, float col, float layer, float colW, float amp) {
     float k0 = hash11(floor(ky) + col * 3.1 + layer) - 0.5;
     float k1 = hash11(floor(ky) + 1.0 + col * 3.1 + layer) - 0.5;
     float kink = mix(k0, k1, smoothstep(0.7, 1.0, fract(ky))) * 2.0;
-    return rainWander * amp * colW * (0.17 * n + 0.05 * n2 + 0.03 * kink);
+    return rainWander * amp * colW * (0.17 * n + 0.08 * n2 + 0.04 * kink);
 }
 
 // The path exactly as the drop passes will see it: sampled at the table's
@@ -319,7 +319,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
             vec2 cc = vec2(cx, fj);
             vec2 cen = (cc + 0.5) * cs0;
             float dh = dens0 * layerCluster(0, cen, cs0);
-            vec4 nb = sessileBase(cc, 0.0, cs0, 1.9 * pxScale, cs0 * 0.36, dh);
+            vec4 nb = sessileBase(cc, 0.0, cs0, 5.0 * pxScale, cs0 * 0.36, dh);
             if (nb.z <= 0.0 || nb.z < rNow * 1.15) continue;
             float px = xcBase + pathSampled(nb.y, col, layer, colW, wvar);
             if (abs(px - nb.x) > nb.z + rNow * 0.7) continue;
@@ -423,7 +423,7 @@ vec3 sampleBg(vec2 uv, float sharpMix) {
 // the matching mip level or the interior aliases into moire.
 vec3 sampleLens(vec2 uv, float sharpMix, float mag) {
     vec3 b = texture(blurTex, uv).rgb;
-    float lod = max(0.0, log2(max(mag, 1.0)));
+    float lod = max(0.0, log2(max(mag, 1.0)) + 1.0);
     vec3 s = textureLod(sharpTex, uv, lod).rgb;
     return mix(b, s, sharpMix);
 }
@@ -464,12 +464,18 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
     inside *= 1.0 + (brighten + 0.2 * runner) * f;
     // Fresnel loss makes the interior a touch darker than the pane toward the rim
     inside *= mix(1.0, 0.92 * (1.0 - 0.25 * smoothstep(0.6, 1.0, rad)), f);
+    // a drop images the ground below the window at its top and the sky at its
+    // bottom, so even over a flat scene it carries a dark-top/bright-bottom gradient
+    float vpos = acc.toC.y * rad;   // -1 top .. +1 bottom
+    inside *= mix(1.0, mix(0.78, 1.1, smoothstep(-0.7, 0.8, vpos)), f);
     float inLum = dot(inside, vec3(0.2126, 0.7152, 0.0722));
     inside = mix(vec3(inLum), inside, 0.9);
 
     // dark cap: a crescent over the top ~30% of the radius on the lit side,
     // where grazing refraction and TIR remove the transmitted light
-    float capMask = smoothstep(0.55, 0.98, rad) * pow(litSide, 1.2);
+    // dark rim band: wide at the top of the drop, thin at the bottom
+    float capW = mix(0.05, 0.2, smoothstep(0.4, -0.6, vpos)) * mix(0.6, 1.0, litSide);
+    float capMask = smoothstep(1.0 - capW * 1.6, 1.0 - capW * 0.3, rad) * (0.4 + 0.6 * litSide);
     float rim = 1.0 - rimDark * (1.0 - 0.5 * runner) * mix(0.5, 1.0, sizeK) * capMask * f;
     // bright arc: a whitish crescent along the far rim
     float arcDir = max(dot(outward, -lxy), 0.0);
@@ -485,10 +491,14 @@ vec4 shadeDrop(Acc acc, vec2 uv, vec3 pane, vec3 L, vec2 lxy, float runner) {
     float ang = (acc.spark - 0.9) * 0.6;
     vec3 Lj = normalize(vec3(L.x * cos(ang) - L.y * sin(ang), L.x * sin(ang) + L.y * cos(ang), L.z));
     vec3 hv = normalize(Lj + vec3(0.0, 0.0, 1.0));
-    float hl = max(dot(n, hv), 0.0);
-    float specPow = mix(90.0, 320.0, sizeK);
-    float specMask = smoothstep(2.0 * ps, 7.0 * ps, acc.rNear) * smoothstep(0.55, 0.85, acc.spark) * f;
-    float spec = pow(hl, specPow) * highlight * 1.6 * specMask;
+    // the light source is the window itself: a soft, wide band on the upper
+    // rim whose brightness follows the scene, plus a small glint on big drops
+    vec3 nAn = normalize(vec3(n.x * 0.5, n.y, n.z));
+    float hl = max(dot(nAn, hv), 0.0);
+    float sceneLum = clamp(dot(texture(fogTex, uv).rgb, vec3(0.2126, 0.7152, 0.0722)) * 1.4 + 0.15, 0.15, 1.0);
+    float specMask = smoothstep(3.0 * ps, 8.0 * ps, acc.rNear) * f;
+    float spec = pow(hl, 14.0) * 0.45 * sceneLum * specMask * highlight;
+    spec += pow(max(dot(n, hv), 0.0), 300.0) * 0.6 * sceneLum * smoothstep(9.0 * ps, 18.0 * ps, acc.rNear) * smoothstep(0.55, 0.85, acc.spark) * f * highlight;
 
     vec3 lightCol = vec3(0.95, 0.96, 1.0);
     vec3 dcol = inside * rim * ol + refl + spec * lightCol + arc * (inside * 0.8 + lightCol * 0.6);
@@ -643,7 +653,7 @@ void main() {
                     float dx = dxp;
                     float wn = rtWidth(col, slotId, p.y);
                     float wn2 = vnoise(vec2(p.y / (16.0 * ps), rn.col * 5.0 + fl + 3.0));
-                    float tw = rn.tw * (0.8 + 0.3 * (wn - 0.5) * 2.0 + 0.12 * (wn2 - 0.5) * 2.0);
+                    float tw = rn.tw * (0.8 + 0.3 * (wn - 0.5) * 2.0 + 0.05 * (wn2 - 0.5) * 2.0);
                     float age = (rn.head.y - p.y) / max(rn.v, 1.0);
                     float regrow = 1.0 - exp(-age * fogRegrow * 0.06);
                     float fresh = (1.0 - regrow) * (1.0 - rn.dying);
@@ -723,7 +733,7 @@ void main() {
         float cs = csL[l];
         float densHere = densL[l];
         float rMax = cs * 0.36;
-        float rMin = 1.9 * ps;
+        float rMin = (l == 0 ? 5.0 : (l == 1 ? 2.8 : 1.9)) * ps;
         // the four cells whose centres are nearest: a drop never reaches
         // further than jitter + rMax < 1 cell from its own centre
         vec2 cell = floor(p / cs - 0.5);
@@ -805,7 +815,7 @@ void main() {
                     vec2 bcell = floor(centre / bcs - 0.5);
                     for (int by = 0; by <= 1; by++) for (int bx = 0; bx <= 1; bx++) {
                         vec2 bcc = bcell + vec2(float(bx), float(by));
-                        vec4 big = sessileBase(bcc, float(bl), bcs, 1.9 * ps, bcs * 0.36, densL[bl] * layerCluster(bl, (bcc + 0.5) * bcs, bcs));
+                        vec4 big = sessileBase(bcc, float(bl), bcs, (bl == 0 ? 5.0 : 2.8) * ps, bcs * 0.36, densL[bl] * layerCluster(bl, (bcc + 0.5) * bcs, bcs));
                         if (big.z < 0.6) continue;
                         float dist = length(big.xy - centre);
                         float touch = smoothstep(1.0 * (rr + big.z), 0.85 * (rr + big.z), dist);
@@ -823,9 +833,9 @@ void main() {
                 vec4 hs = hash42(cc * 1.37 + vec2(fl * 41.0 + seed, fl * 17.0 - seed));
                 vec3 hk = hash32(cc * 0.71 + vec2(fl, seed));
                 float sag = clamp(rr / (20.0 * ps), 0.0, 1.0) * dropIrregular;
-                float rx = rr * (0.97 + 0.08 * (hk.y - 0.5) * dropIrregular);
-                float ryUp = rr * (0.94 - 0.04 * sag);
-                float ryDown = rr * (1.12 + 0.18 * sag);
+                float rx = rr * (0.95 + 0.1 * (hk.y - 0.5) * dropIrregular);
+                float ryUp = rr * (0.92 - 0.04 * sag + 0.1 * hs.z * dropIrregular);
+                float ryDown = rr * (1.05 + 0.18 * sag + 0.35 * hs.z * dropIrregular);
                 float wob = 0.06 * dropIrregular * (0.4 + 0.6 * hk.z);
                 addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge + 0.8 * neck, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
             }
@@ -861,23 +871,23 @@ void main() {
     // a wet track scatters a little even when the condensation is gone
     fogLocal *= (1.0 - trailClear * 0.85);
     fogLocal = clamp(fogLocal, 0.0, 1.0);
-    // micro-beads are lit from the light side: bright flank toward the light,
-    // dark flank away, exactly like the big drops in miniature
-    float gl = dot(gn, lxy) * 0.35 - length(gn) * 0.08;
+    // micro-beads read as a stipple: a dark crescent on the lower flank of each
+    // bead and a pinprick highlight (from the glass map), nothing broader
+    float gl = -smoothstep(0.25, 0.9, gn.y) * 0.22 * fogGrain;
 
     // ------------------------------------------------------------- base
     vec2 bgUv = uv + gn * 4.0 * ps / resolution * fogLocal;
     // a wet track is a thin lens of water: it displaces the scene sideways and
     // is sharper than the fogged pane around it
     bgUv.x += trailNx * 5.0 * ps / resolution.x * trailClear;
-    vec3 clear = sampleBg(bgUv, 0.35 * trailClear);
+    vec3 clear = sampleLens(bgUv, 0.35 * trailClear, 2.0);
     vec3 fogged = fogColor(bgUv) * (1.0 + gl);
     vec3 col = mix(clear, fogged, fogLocal);
-    col += glassAdd * 0.1 * fogLocal * fogGrain;
+    col += glassAdd * 0.16 * fogLocal * fogGrain;
     // glossy rim of the film: bright on the side facing the light, dark opposite
     float filmSide = trailNx * lxy.x;
     float filmRim = pow(1.0 - trailH, 2.0) * trailClear * trailEdge;
-    col *= 1.0 + filmRim * (0.45 * max(filmSide, 0.0) - 0.2 * max(-filmSide, 0.0)) * 2.0;
+    col *= 1.0 + filmRim * (0.6 * max(filmSide, 0.0) - 0.25 * max(-filmSide, 0.0)) * 2.0;
 
     // --------------------------------------------------- sessile layer
     vec4 st = texture(sessTex, uv);
@@ -907,8 +917,8 @@ void main() {
     col = (col - 0.5) * contrast + 0.5 + (brightness - 1.0);
     col = max(col, 0.0);
     // filmic curve (ACES fit) so highlights roll off and blacks are black
-    vec3 x = col * 1.15;
-    vec3 curve = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+    vec3 x = col * 1.0;
+    vec3 curve = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14) * 1.12, 0.0, 1.0);
     col = mix(clamp(col, 0.0, 1.0), curve, filmic);
     fragColor = vec4(col, 1.0) * qt_Opacity;
 #endif

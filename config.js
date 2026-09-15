@@ -42,7 +42,7 @@ var defaults = {
     "grain": 0.9,         // micro-droplet texture of the condensation
     "regrow": 2.0,        // how fast a wiped track fogs up again
     "halo": 0.6,          // dry ring around drops
-    "lift": 0.3,          // how milky/bright the condensation is
+    "lift": 0.2,          // how milky/bright the condensation is
     "tint": [0.85, 0.88, 0.94],
     "tintStrength": 0.25
   },
@@ -55,7 +55,7 @@ var defaults = {
     "sharpness": 0.85,     // 0 = drops show the blurred scene, 1 = sharp scene
     "rimDark": 0.5,       // dark cap on the lit side of the dome
     "outline": 0.7,       // contact-line darkness
-    "brighten": 0.2,      // light gathered by the drop lens
+    "brighten": 0.1,      // light gathered by the drop lens
     "contrast": 1.15,     // contrast of the lens image inside drops
     "highlight": 1.0,     // hard specular and bright arc
     "sheen": 1.0,         // soft broad sheen
@@ -84,7 +84,7 @@ var defaults = {
   "post": {
     "brightness": 1.0,
     "contrast": 1.0,
-    "saturation": 0.95,
+    "saturation": 0.85,
     "filmic": 0.8         // filmic (ACES) curve: real blacks, rolled-off highlights
   }
 };

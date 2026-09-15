@@ -102,7 +102,7 @@ presets, edit config). Merge its keys into
 | `fog.grain` | `0.9` | micro-droplet texture |
 | `fog.regrow` | `2.0` | how fast a wiped track fogs up again |
 | `fog.halo` | `0.6` | dry ring around drops |
-| `fog.lift` | `0.3` | how milky/bright the condensation is |
+| `fog.lift` | `0.2` | how milky/bright the condensation is |
 | `fog.tint` | `[0.85,0.88,0.94]` | colour of the scattered light |
 | `fog.tintStrength` | `0.25` | |
 | **optics** | | drop shading |
@@ -113,7 +113,7 @@ presets, edit config). Merge its keys into
 | `optics.sharpness` | `0.85` | 0 = drops show the blurred scene, 1 = the sharp scene |
 | `optics.rimDark` | `0.5` | dark cap on the lit side of the dome |
 | `optics.outline` | `0.7` | contact-line darkness |
-| `optics.brighten` | `0.2` | light gathered by the lens |
+| `optics.brighten` | `0.1` | light gathered by the lens |
 | `optics.contrast` | `1.15` | contrast of the lens image inside drops |
 | `optics.highlight` | `1.0` | pinpoint highlight and bright arc |
 | `optics.sheen` | `1.0` | soft broad sheen |
@@ -136,7 +136,7 @@ presets, edit config). Merge its keys into
 | **post** | | |
 | `post.brightness` | `1.0` | |
 | `post.contrast` | `1.0` | |
-| `post.saturation` | `0.95` | |
+| `post.saturation` | `0.85` | |
 | `post.filmic` | `0.8` | filmic (ACES) curve: real blacks, rolled-off highlights |
 
 ## Performance
