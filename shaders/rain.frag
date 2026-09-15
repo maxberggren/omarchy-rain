@@ -141,12 +141,14 @@ float smin(float a, float b, float k) {
 // domed the cap is; spark: highlight intensity for this drop.
 void addDrop(inout Acc a, vec2 d, float rx, float ryUp, float ryDown, float wobble, float ph, float r, float k, float lensK, float dome, float spark, float fade) {
     float ry = d.y < 0.0 ? ryUp : ryDown;
-    vec2 uvn = vec2(d.x / rx, d.y / ry);
+    // sessile drops on a vertical pane bulge below their middle
+    float belly = 1.0 + 0.14 * clamp(d.y / max(ryDown, 1.0), -1.0, 1.0);
+    vec2 uvn = vec2(d.x / (rx * belly), d.y / ry);
     float q = dot(uvn, uvn);
     if (q > 4.0) return;
     if (wobble > 0.0 && q > 0.2 && r > 3.0 * pxScale) {
         float th = atan(d.y, d.x);
-        float m = 1.0 + wobble * (0.6 * sin(2.0 * th + ph) + 0.4 * sin(3.0 * th + 2.1 * ph));
+        float m = 1.0 + wobble * (0.5 * sin(2.0 * th + ph) + 0.35 * sin(3.0 * th + 2.1 * ph) + 0.25 * sin(5.0 * th + 0.7 * ph));
         uvn /= m;
         q = dot(uvn, uvn);
     }
@@ -354,7 +356,7 @@ Runner runnerFor(float col, float layer, float colW, float rBase, float cycleK, 
     rn.v = v * (1.0 + 2.0 * accel * tau);
     rn.xc = xcBase;
     rn.head = vec2(rn.xc + pathSampled(y, col, layer, colW, rn.widthVar), y);
-    rn.tw = rn.r * 0.8 * rainTrailWidth * mix(0.8, 1.2, hc.w);
+    rn.tw = rn.r * 1.0 * rainTrailWidth * mix(0.8, 1.2, hc.w);
     rn.born = t0;
     // after the head is long gone the track re-fogs and the beads evaporate,
     // so nothing pops when the cycle is dropped from evaluation
@@ -847,7 +849,10 @@ void main() {
                 float rx = rr * (0.95 + 0.1 * (hk.y - 0.5) * dropIrregular);
                 float ryUp = rr * (0.92 - 0.04 * sag + 0.1 * hs.z * dropIrregular);
                 float ryDown = rr * (1.05 + 0.18 * sag + 0.35 * hs.z * dropIrregular);
-                float wob = 0.06 * dropIrregular * (0.4 + 0.6 * hk.z);
+                float wob = 0.1 * dropIrregular * (0.4 + 0.6 * hk.z);
+                // small random tilt so no two silhouettes match
+                float tilt = (hs.w - 0.5) * 0.35 * dropIrregular;
+                d = vec2(d.x * cos(tilt) - d.y * sin(tilt), d.x * sin(tilt) + d.y * cos(tilt));
                 addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge + 0.8 * neck, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
             }
         }
@@ -884,7 +889,7 @@ void main() {
     fogLocal = clamp(fogLocal, 0.0, 1.0);
     // micro-beads read as a stipple: a dark crescent on the lower flank of each
     // bead and a pinprick highlight (from the glass map), nothing broader
-    float gl = (-smoothstep(0.25, 0.9, -gn.y) * 0.22 + smoothstep(0.55, 0.95, gn.y) * 0.3) * fogGrain;
+    float gl = (-smoothstep(0.25, 0.9, -gn.y) * 0.3 + smoothstep(0.55, 0.95, gn.y) * 0.32) * fogGrain;
 
     // ------------------------------------------------------------- base
     vec2 bgUv = uv + gn * 4.0 * ps / resolution * fogLocal;

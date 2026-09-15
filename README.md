@@ -98,11 +98,11 @@ presets, edit config). Merge its keys into
 | `drops.layers` | `3` | 1..3 size classes |
 | `drops.fps` | `10` | refresh rate of the cached sitting-drop layer |
 | **fog** | | condensation |
-| `fog.amount` | `0.3` | 0..1 how fogged the pane is (drops and tracks wipe it) |
+| `fog.amount` | `0.4` | 0..1 how fogged the pane is (drops and tracks wipe it) |
 | `fog.grain` | `0.9` | micro-droplet texture |
 | `fog.regrow` | `2.0` | how fast a wiped track fogs up again |
 | `fog.halo` | `0.6` | dry ring around drops |
-| `fog.lift` | `0.1` | how milky/bright the condensation is |
+| `fog.lift` | `0.2` | how milky/bright the condensation is |
 | `fog.tint` | `[0.85,0.88,0.94]` | colour of the scattered light |
 | `fog.tintStrength` | `0.25` | |
 | **optics** | | drop shading |
@@ -136,7 +136,7 @@ presets, edit config). Merge its keys into
 | **post** | | |
 | `post.brightness` | `0.98` | |
 | `post.contrast` | `1.0` | |
-| `post.saturation` | `0.6` | |
+| `post.saturation` | `0.75` | |
 | `post.filmic` | `0.8` | filmic (ACES) curve: real blacks, rolled-off highlights |
 
 ## Performance

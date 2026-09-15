@@ -38,11 +38,11 @@ var defaults = {
   },
 
   "fog": {
-    "amount": 0.3,        // 0..1 condensation on the glass
+    "amount": 0.4,        // 0..1 condensation on the glass
     "grain": 0.9,         // micro-droplet texture of the condensation
     "regrow": 2.0,        // how fast a wiped track fogs up again
     "halo": 0.6,          // dry ring around drops
-    "lift": 0.1,          // how milky/bright the condensation is
+    "lift": 0.2,          // how milky/bright the condensation is
     "tint": [0.85, 0.88, 0.94],
     "tintStrength": 0.25
   },
@@ -84,7 +84,7 @@ var defaults = {
   "post": {
     "brightness": 0.98,
     "contrast": 1.0,
-    "saturation": 0.6, 
+    "saturation": 0.75,
     "filmic": 0.8         // filmic (ACES) curve: real blacks, rolled-off highlights
   }
 };

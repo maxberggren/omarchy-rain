@@ -205,11 +205,11 @@ Item {
     readonly property real dropIrregular: view.num(view.cfg.drops.irregularity, 1)
     readonly property real dropMerge: view.num(view.cfg.drops.merge, 1)
     readonly property real dropLayers: view.num(view.cfg.drops.layers, 3)
-    readonly property real fogAmount: view.num(view.cfg.fog.amount, 0.3)
+    readonly property real fogAmount: view.num(view.cfg.fog.amount, 0.4)
     readonly property real fogGrain: view.num(view.cfg.fog.grain, 0.9)
     readonly property real fogRegrow: view.num(view.cfg.fog.regrow, 2.0)
     readonly property real fogHalo: view.num(view.cfg.fog.halo, 0.6)
-    readonly property real fogLift: view.num(view.cfg.fog.lift, 0.1)
+    readonly property real fogLift: view.num(view.cfg.fog.lift, 0.2)
     readonly property vector4d fogTint: { var t = view.vec3(view.cfg.fog.tint, [0.85, 0.88, 0.94]); return Qt.vector4d(t.x, t.y, t.z, view.num(view.cfg.fog.tintStrength, 0.25)); }
     readonly property real lensZoom: view.num(view.cfg.optics.lensZoom, 7)
     readonly property real lensField: view.num(view.cfg.optics.field, 0.06)
@@ -231,7 +231,7 @@ Item {
     readonly property real vignette: view.num(view.cfg.glass.vignette, 0.35)
     readonly property real brightness: view.num(view.cfg.post.brightness, 0.98)
     readonly property real contrast: view.num(view.cfg.post.contrast, 1)
-    readonly property real saturation: view.num(view.cfg.post.saturation, 0.6)
+    readonly property real saturation: view.num(view.cfg.post.saturation, 0.75)
     readonly property real filmic: view.num(view.cfg.post.filmic, 0.8)
   }
 
