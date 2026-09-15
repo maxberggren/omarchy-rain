@@ -1,18 +1,16 @@
 #!/bin/bash
-# Animate the preview on the hidden output at 60 fps and report average GPU
-# busy % and package power over a window. Usage: dev/bench.sh [config.json] [seconds]
+# Throughput benchmark: run the preview on the hidden output (create it with
+# RAIN_HZ=240 dev/preview-output.sh) with an unthrottled animation tick and
+# report achieved frames per second from Mesa's HUD dump. Higher is cheaper.
+#   dev/bench.sh [config.json] [seconds]
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CFG="${1:-}"; SECS="${2:-8}"
-SCRATCH="${RAIN_SCRATCH:-/tmp/rain-preview-$USER}"; CFGDIR="$SCRATCH/cfg"
-RAIN_ANIMATE=1 RAIN_NOBUILD=${RAIN_NOBUILD:-0} "$ROOT/dev/shot.sh" "$SCRATCH/bench" "$CFG" 0 >/dev/null 2>&1 &
-sleep 5
-D=/sys/class/drm/card1/device; [[ -f $D/gpu_busy_percent ]] || D=/sys/class/drm/card0/device
-H=$(ls -d $D/hwmon/hwmon* | head -1)
-b=0; pw=0; n=0
-for ((i=0;i<SECS*2;i++)); do
-  b=$((b + $(cat $D/gpu_busy_percent)))
-  [[ -f $H/power1_average ]] && pw=$((pw + $(cat $H/power1_average)/1000))
-  n=$((n+1)); sleep 0.5
-done
-wait
-printf "busy=%3d%% power=%5dmW  %s\n" $((b/n)) $((pw/n)) "$(basename "$CFG")"
+SCRATCH="${RAIN_SCRATCH:-/tmp/rain-preview-$USER}"; HUD="$SCRATCH/hud"
+rm -rf "$HUD"; mkdir -p "$HUD"
+GALLIUM_HUD=fps GALLIUM_HUD_DUMP_DIR="$HUD" RAIN_TICK=2 RAIN_BENCH_SECS=$((SECS+5)) RAIN_ANIMATE=1 RAIN_NOBUILD=${RAIN_NOBUILD:-0} \
+  "$ROOT/dev/shot.sh" "$SCRATCH/bench" "$CFG" 0 >/dev/null 2>&1
+f=$(ls "$HUD"/fps* 2>/dev/null | head -1)
+if [[ -z $f ]]; then echo "no hud dump"; exit 1; fi
+# skip the first seconds (warm-up), average the rest
+avg=$(tail -n +4 "$f" | awk '{s+=$1; n++} END { if (n) printf "%.1f", s/n; else print 0 }')
+printf "fps=%6s  ms/frame=%5.2f  %s\n" "$avg" "$(awk -v a=$avg 'BEGIN{ if (a>0) printf "%.2f", 1000/a; else print 0}')" "$(basename "$CFG")"

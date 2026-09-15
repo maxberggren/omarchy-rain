@@ -1,11 +1,18 @@
 {
   "schemaVersion": 1,
   "id": "maxberggren.rain",
-  "name": "Rain on Glass",
-  "version": "0.1.0",
+  "name": "Rain on Glass lock screen",
+  "version": "0.2.0",
   "author": "Max Berggren",
-  "description": "Physically inspired rain on a window pane over your lens-blurred wallpaper: sliding drops with stick-slip motion and pearling trails, sessile drops that coalesce, condensation that the drops wipe away. Everything is configurable in ~/.config/omarchy/rain.json.",
-  "kinds": ["service"],
-  "entryPoints": { "service": "RainBackground.qml" },
-  "keepLoaded": false
+  "description": "Omarchy's lock screen with live rain on your wallpaper behind the password field: sliding drops, sitting drops that land, merge and get swept, condensation the water wipes away. Optional always-on desktop mode. Everything is configurable in ~/.config/omarchy/rain.json.",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  },
+  "keepLoaded": true,
+  "omarchy": {
+    "clonedFrom": "omarchy.lock"
+  }
 }

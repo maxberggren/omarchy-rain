@@ -1,5 +1,11 @@
 # Rain on Glass for Omarchy
 
+A lock screen with live rain on your wallpaper behind the password field.
+It is Omarchy's own lock screen (the password and fingerprint flows are
+unchanged) with the blurred wallpaper replaced by animated rain, so it costs
+nothing while you are working and only runs while the session is locked.
+An always-on desktop mode is available too, off by default.
+
 Animated rain on a window pane, drawn over your current wallpaper. The
 wallpaper gets a real lens blur (bokeh discs, not a Gaussian smear), a layer
 of condensation settles on the glass, and drops do what drops do on a
@@ -17,7 +23,13 @@ automatically.
 
 ```bash
 omarchy plugin add https://github.com/maxberggren/omarchy-rain.git --enable --yes
+omarchy restart shell
 ```
+
+Enabling it replaces the built-in `omarchy.lock` (the shell records that in
+`disabledPlugins`); `omarchy plugin disable maxberggren.rain` brings the
+built-in lock screen back. Lock as usual (`omarchy-system-lock` or your
+keybinding); `omarchy-shell lock preview` shows the lock view without locking.
 
 Or by hand:
 
@@ -53,7 +65,8 @@ Live control over IPC (also persists to `rain.json`):
 omarchy-shell rain set rain.speed 1.5      # any dotted key
 omarchy-shell rain get fog                 # print a section (or everything with "")
 omarchy-shell rain preset downpour         # default, drizzle, downpour, foggy, dry, night, still, cheap
-omarchy-shell rain toggle                  # on/off
+omarchy-shell rain set lock.blankAfter 0   # keep the lock screen lit
+omarchy-shell rain set desktop.enabled true
 omarchy-shell rain pause | resume          # freeze the animation, keep the frame
 omarchy-shell rain status
 ```
@@ -68,9 +81,13 @@ presets, edit config). Merge its keys into
 
 | Key | Default | What it does |
 |---|---|---|
-| `enabled` | `true` | draw the rain layer at all |
-| `fps` | `24` | animation rate cap; `0` freezes time |
-| `coveredFps` | `10` | rate while the focused workspace has windows; set equal to `fps` to disable |
+| `lock.fps` | `30` | animation rate on the lock screen |
+| `lock.renderScale` | `1.0` | render resolution on the lock screen (fraction of physical) |
+| `lock.blankAfter` | `60` | seconds without input before the display turns off while locked; `0` = never |
+| `lock.*` | | any other key from this table, applied only on the lock screen |
+| `desktop.enabled` | `false` | also draw rain over the desktop wallpaper all the time |
+| `fps` | `24` | desktop animation rate cap; `0` freezes time |
+| `coveredFps` | `10` | desktop rate while the focused workspace has windows |
 | `renderScale` | `0.75` | fraction of the screen's physical resolution; `1.0` is native, `0.5` much cheaper |
 | `seed` | `0` | change to get a different pane |
 | `backgroundPath` | `""` | force an image instead of following the current wallpaper |
@@ -163,8 +180,9 @@ dev/install-local.sh --remove
 dev/preview-output.sh --remove   # drop the hidden output again
 ```
 
-`RainView.qml` is the reusable renderer; `RainBackground.qml` is the shell
-service that hosts it on every screen. `shaders/rain.frag` is compiled twice:
+`RainView.qml` is the reusable renderer; `Service.qml` is omarchy's lock
+service (kept intact) hosting `RainLockView.qml`, and `RainDesktop.qml` is the
+optional always-on desktop layer. `shaders/rain.frag` is compiled twice:
 as is for the per-frame pass and with `-D SESSILE` for the cached
 sitting-drop pass. Service plugins are not hot-reloaded by the shell, so
 `omarchy restart shell` after installing a new build; `omarchy-shell rain status`

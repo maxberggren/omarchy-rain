@@ -20,7 +20,7 @@ fi
 
 "$ROOT/dev/build-shaders.sh" >/dev/null
 mkdir -p "$DEST/shaders"
-cp "$ROOT/manifest.json" "$ROOT/RainBackground.qml" "$ROOT/RainView.qml" "$ROOT/config.js" "$DEST/"
+cp "$ROOT/manifest.json" "$ROOT/Service.qml" "$ROOT/RainLockView.qml" "$ROOT/RainDesktop.qml" "$ROOT/RainView.qml" "$ROOT/config.js" "$DEST/"
 cp "$ROOT"/shaders/*.qsb "$DEST/shaders/"
 omarchy plugin validate "$DEST"
 omarchy-shell -q shell rescanPlugins || true

@@ -14,7 +14,9 @@ IMG="${RAIN_IMAGE:-$(readlink -f "$HOME/.local/state/omarchy/current/background"
 
 [[ ${RAIN_NOBUILD:-0} == 1 ]] || "$ROOT/dev/build-shaders.sh" >/dev/null
 mkdir -p "$CFGDIR/shaders"
-cp "${RAIN_VIEW:-$ROOT/RainView.qml}" "$CFGDIR/RainView.qml"; cp "$ROOT/config.js" "$CFGDIR/"
+cp "${RAIN_VIEW:-$ROOT/RainView.qml}" "$CFGDIR/RainView.qml"; cp "$ROOT/config.js" "$ROOT/RainLockView.qml" "$CFGDIR/"
+# the lock view imports omarchy's shell modules; copy them into the harness root
+rm -rf "$CFGDIR/Commons" "$CFGDIR/Ui"; cp -r /usr/share/omarchy/shell/Commons /usr/share/omarchy/shell/Ui "$CFGDIR/" 2>/dev/null || true
 cp "$ROOT"/shaders/*.qsb "$ROOT"/dev/shaders/*.qsb "$CFGDIR/shaders/"
 if [[ -n $CFG && -f $CFG ]]; then cp "$CFG" "$CFGDIR/rain.json"; else echo '{}' > "$CFGDIR/rain.json"; fi
 
@@ -38,7 +40,7 @@ ShellRoot {
     function setTime(v: string): void { root.t = Number(v) }
   }
   property real epoch: Date.now()
-  Timer { interval: 16; repeat: true; running: ${RAIN_ANIMATE:-0} == 1; onTriggered: root.t = ((Date.now() - root.epoch) / 1000) % 600 }
+  Timer { interval: ${RAIN_TICK:-16}; repeat: true; running: ${RAIN_ANIMATE:-0} == 1; onTriggered: root.t = ((Date.now() - root.epoch) / 1000) % 600 }
   Variants {
     model: Quickshell.screens.filter(s => s.name === "rainpreview")
     PanelWindow {
@@ -50,11 +52,24 @@ ShellRoot {
       exclusionMode: ExclusionMode.Ignore
       color: "black"
       RainView {
+        visible: ${RAIN_LOCKVIEW:-0} == 0
         anchors.fill: parent
         imageSource: "file://$IMG"
         cfg: root.cfg
         time: root.t
         debug: ${RAIN_DEBUG:-0}
+      }
+      Loader {
+        anchors.fill: parent
+        active: ${RAIN_LOCKVIEW:-0} == 1
+        sourceComponent: RainLockView {
+          backgroundPath: "$IMG"
+          rainCfg: root.cfg
+          rainTime: root.t
+          inputEnabled: false
+          loadBackground: true
+          passwordText: ""
+        }
       }
     }
   }

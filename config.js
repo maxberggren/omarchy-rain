@@ -11,6 +11,15 @@ var defaults = {
   "backgroundPath": "",   // empty = follow omarchy's current background
   "screens": [],          // empty = all screens; else list of output names
 
+  "lock": {               // overrides used on the lock screen (any key from this file)
+    "fps": 30,
+    "renderScale": 1.0,
+    "blankAfter": 60      // seconds idle before the display turns off (0 = never)
+  },
+  "desktop": {            // always-on rain over the desktop wallpaper (costly)
+    "enabled": false
+  },
+
   "rain": {
     "amount": 0.9,        // 0..1 share of columns carrying sliding drops
     "spawnRate": 1.0,     // how often a new runner starts (multiplier)
