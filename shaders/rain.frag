@@ -706,7 +706,7 @@ void main() {
                 // the drop is pulled into the head and shrinks away over ~0.4 s
                 if (sweep > 0.001 && !(l == 0 && cc == sweepStop)) {
                     // the drop must be well under the head, not just grazed
-                    float reach = sweepW * 0.8 + rr * 0.5;
+                    float reach = sweepW * 0.95 + rr * 0.7;
                     // the path at the drop's own height, so every pixel of the drop agrees
                     float pathAtDrop = rtPath(sweepCol, sweepSlot, centre.y);
                     if (abs(centre.x - pathAtDrop) < reach) {
