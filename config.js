@@ -34,11 +34,11 @@ var defaults = {
     "irregularity": 1.0,  // gravity sag and outline wobble
     "merge": 1.0,         // coalescence softness between touching drops
     "layers": 3,          // 1..3 size classes
-    "fps": 10             // refresh rate of the cached sitting-drop layer
+    "fps": 15             // refresh rate of the cached sitting-drop layer
   },
 
   "fog": {
-    "amount": 0.4,        // 0..1 condensation on the glass
+    "amount": 0.2,        // 0..1 condensation on the glass
     "grain": 0.9,         // micro-droplet texture of the condensation
     "regrow": 2.0,        // how fast a wiped track fogs up again
     "halo": 0.6,          // dry ring around drops

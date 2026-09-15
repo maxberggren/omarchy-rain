@@ -213,18 +213,13 @@ vec4 sessileAt(vec2 cc, float fl, float cs, float rMin, float rMax, float densHe
     float a1 = 1.55;
     float ratio = pow(rMin / rMax, a1);
     float r = rMin * pow(1.0 - hk.x * (1.0 - ratio), -1.0 / a1) * dropSize;
-    float pop = 1.0;
-    if (tl < 0.5) {
-        float tt = tl / 0.5;
-        pop = tt < 0.2 ? smoothstep(0.0, 0.2, tt) * 1.15 : (1.0 + 0.15 * exp(-(tt - 0.2) * 6.0) * cos((tt - 0.2) * 34.0));
-    }
     float grow = 0.85 + 0.15 * clamp(tl / (0.5 * T), 0.0, 1.0);
     // drops do not vanish in the rain; only a very slow shrink at the end of
     // a long life, so the pane slowly renews itself
     // very slow shrink over the last three quarters of a long life, easing to
     // a standstill, so it is never seen happening
     float evap = 1.0 - smoothstep(0.25 * T, T, tl);
-    return vec4(centre, r * pop * grow * evap * exist, tl);
+    return vec4(centre, r * grow * evap * exist, tl);
 }
 
 // Cheaper variant for neighbour checks: static position and base radius only.
@@ -763,6 +758,17 @@ void main() {
                 float rr = me.z;
                 float ageMe = me.w;
                 float neck = 0.0;   // extra fillet while a merge is under way
+                // landing: the drop hits, spreads wide and flat in ~40 ms, then
+                // surface tension pulls it back into a dome with a damped wobble
+                float landDome = 1.0;
+                if (ageMe < 1.2) {
+                    float ti = ageMe;
+                    float spread = smoothstep(0.0, 0.04, ti) * (1.0 + 0.45 * exp(-max(ti - 0.04, 0.0) * 5.0) * cos(max(ti - 0.04, 0.0) * 22.0));
+                    rr *= spread;
+                    landDome = 0.3 + 0.7 * (1.0 - exp(-max(ti - 0.04, 0.0) * 6.0));
+                    // it slides a touch before it pins
+                    centre.y += rr * 0.25 * (1.0 - exp(-ti * 5.0));
+                }
                 // a runner swallows every drop its head runs over: the drop is
                 // pulled toward the head and shrinks away, and the cell stays dry
                 // until rain lands a fresh drop there
@@ -854,7 +860,7 @@ void main() {
                 // small random tilt so no two silhouettes match
                 float tilt = (hs.w - 0.5) * 0.35 * dropIrregular;
                 d = vec2(d.x * cos(tilt) - d.y * sin(tilt), d.x * sin(tilt) + d.y * cos(tilt));
-                addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge + 0.8 * neck, lensZoom, 0.6 + 0.4 * hs.w, 0.6 + 0.8 * hk.y, 1.0);
+                addDrop(sess, d, rx, ryUp, ryDown, wob, hk.z * 6.28 + hs.w * 3.0, rr, 0.2 + 0.25 * dropMerge + 0.8 * neck, lensZoom, (0.6 + 0.4 * hs.w) * landDome, 0.6 + 0.8 * hk.y, 1.0);
             }
         }
     }
